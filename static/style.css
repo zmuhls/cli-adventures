@@ -1,0 +1,519 @@
+/* Base styles */
+:root {
+    --terminal-bg: #282a36;
+    --terminal-text: #f8f8f2;
+    --terminal-green: #50fa7b;
+    --terminal-yellow: #f1fa8c;
+    --terminal-blue: #bd93f9;
+    --terminal-red: #ff5555;
+    --terminal-header: #1a1b26;
+    --sidebar-bg: #21222c;
+    --sidebar-header: #6272a4;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'IBM Plex Mono', monospace;
+    background-color: #161821;
+    color: var(--terminal-text);
+    line-height: 1.6;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Container layout */
+.container {
+    display: flex;
+    width: 95%;
+    max-width: 1200px;
+    height: 90vh;
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+    will-change: transform; /* Optimize for animation performance */
+}
+
+/* Terminal styling */
+.terminal-window {
+    flex: 3;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--terminal-bg);
+    border-radius: 6px 0 0 6px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    position: absolute;
+    z-index: 10;
+    top: 5%;
+    left: 5%;
+    width: 65%;
+    height: 80%;
+    resize: both;
+    min-width: 320px;
+    min-height: 300px;
+    max-height: 90vh;
+    transform: translate3d(0, 0, 0); /* Force GPU acceleration for smoother dragging */
+}
+
+.terminal-header {
+    background-color: var(--terminal-header);
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    cursor: move; /* Show move cursor */
+}
+
+.terminal-buttons {
+    display: flex;
+    margin-right: 15px;
+}
+
+.terminal-button {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+.red { background-color: var(--terminal-red); }
+.yellow { background-color: var(--terminal-yellow); }
+.green { background-color: var(--terminal-green); }
+
+.terminal-title {
+    flex-grow: 1;
+    text-align: center;
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+.terminal-body {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Output area */
+#output {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 10px;
+    white-space: pre-wrap;
+}
+
+.welcome-message pre {
+    color: var(--terminal-green);
+    margin-bottom: 15px;
+    font-size: 0.7rem;
+    line-height: 1.2;
+}
+
+.mobile-banner {
+    display: none;
+    color: var(--terminal-green);
+    margin-bottom: 15px;
+    font-size: 0.8rem;
+    line-height: 1.1;
+}
+
+.welcome-message p {
+    margin-bottom: 10px;
+}
+
+.welcome-message code {
+    background-color: rgba(0, 0, 0, 0.3);
+    padding: 2px 4px;
+    border-radius: 3px;
+    color: var(--terminal-yellow);
+}
+
+/* Input line */
+.input-line {
+    display: flex;
+    align-items: center;
+    padding-top: 5px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.prompt {
+    color: var(--terminal-green);
+    margin-right: 8px;
+    font-weight: bold;
+}
+
+#commandInput {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--terminal-text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+}
+
+/* Make terminal text selectable/copy-pastable */
+body {
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+}
+
+.terminal-body {
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+}
+
+.command-output {
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+}
+
+#output {
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+}
+
+.sidebar-section {
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+}
+
+/* Command output styling */
+.command-output {
+    padding: 5px 0;
+    position: relative;
+}
+
+.directory {
+    color: var(--terminal-blue);
+    font-weight: bold;
+}
+
+.file {
+    color: var(--terminal-text);
+}
+
+.error {
+    color: var(--terminal-red);
+}
+
+.success {
+    color: var(--terminal-green);
+}
+
+/* Sidebar styling */
+.sidebar {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 25%;
+    height: 100%;
+    background-color: var(--sidebar-bg);
+    padding: 20px;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    overflow-y: auto;
+    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.3);
+}
+
+.sidebar-section {
+    margin-bottom: 30px;
+}
+
+.sidebar-section h3 {
+    color: var(--sidebar-header);
+    margin-bottom: 15px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.command-list, .tips-list {
+    list-style: none;
+}
+
+.command-list li, .tips-list li {
+    margin-bottom: 8px;
+}
+
+.command-list code {
+    background-color: rgba(0, 0, 0, 0.3);
+    padding: 2px 4px;
+    border-radius: 3px;
+    color: var(--terminal-yellow);
+    font-weight: bold;
+}
+
+.sidebar-section {
+    max-height: 300px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--terminal-header) transparent;
+}
+
+.sidebar-section::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar-section::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar-section::-webkit-scrollbar-thumb {
+    background-color: var(--terminal-header);
+    border-radius: 3px;
+}
+
+.tips-list li {
+    position: relative;
+    padding-left: 15px;
+}
+
+.tips-list li:before {
+    content: '>';
+    position: absolute;
+    left: 0;
+    color: var(--terminal-green);
+    font-weight: bold;
+}
+
+/* Challenge section */
+#current-challenge {
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 10px;
+    border-radius: 4px;
+    border-left: 3px solid var(--terminal-green);
+    margin-bottom: 10px;
+}
+
+.hint {
+    margin-top: 10px;
+}
+
+.hint-toggle {
+    color: var(--terminal-blue);
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.hint-text {
+    display: none;
+    padding: 8px;
+    margin-top: 5px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    color: var(--terminal-yellow);
+    font-style: italic;
+}
+
+/* Dragging state */
+.terminal-window.dragging {
+    opacity: 0.8;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.8);
+}
+
+/* Resize handle */
+.terminal-window::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 15px;
+    height: 15px;
+    background: linear-gradient(135deg, transparent 50%, var(--terminal-blue) 50%);
+    cursor: nwse-resize;
+    opacity: 0.7;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    body {
+        overflow-y: auto;
+        height: auto;
+        min-height: 100vh;
+        overflow-x: hidden; /* Prevent horizontal scrolling */
+    }
+    
+    .container {
+        flex-direction: column;
+        height: auto;
+        min-height: 100vh;
+        width: 100%;
+        max-width: none;
+        position: static;
+        padding-bottom: 30px;
+    }
+    
+    .terminal-window {
+        width: 90%;
+        height: 60vh;
+        position: relative; /* Initial position is relative */
+        top: 0;
+        left: 0;
+        margin: 20px auto;
+        border-radius: 6px;
+        min-width: 280px;
+        min-height: 250px;
+        z-index: 50; /* High z-index to stay above other elements */
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8); /* Stronger shadow for visibility */
+    }
+    
+    /* Styles for terminal when it's being dragged */
+    .terminal-window.dragging {
+        opacity: 0.9;
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.9);
+        transition: none; /* Disable transitions during drag */
+    }
+    
+    /* When positioned absolutely (during/after drag) */
+    .terminal-window[style*="position: absolute"] {
+        min-width: 280px;
+        min-height: 200px;
+        max-width: 95vw;
+        max-height: 80vh;
+    }
+    
+    .sidebar {
+        width: 90%;
+        height: auto;
+        position: relative;
+        padding: 15px;
+        margin: 20px auto;
+        border-radius: 6px;
+        z-index: 1; /* Lower z-index than terminal */
+    }
+    
+    /* Ensure terminal body scrolls properly on mobile */
+    .terminal-body {
+        max-height: calc(100% - 40px); /* Subtract header height */
+        overflow-y: auto;
+    }
+    
+    /* Make sure text input works well on mobile */
+    #commandInput {
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+}
+
+/* Narrow viewport optimizations - disable dragging and fix position */
+@media (max-width: 960px) {
+    .desktop-banner {
+        display: none;
+    }
+    
+    .mobile-banner {
+        display: block;
+    }
+    
+    .terminal-body {
+        padding: 10px;
+    }
+    
+    #output {
+        padding-bottom: 5px;
+    }
+    
+    .welcome-message p {
+        font-size: 0.9rem;
+    }
+    
+    /* Fixed positioning for narrow viewport - prevent dragging issues */
+    .terminal-window {
+        position: relative !important; /* Force relative positioning */
+        top: auto !important;
+        left: auto !important;
+        margin: 20px auto !important;
+        transform: none !important;
+        width: 90% !important;
+    }
+    
+    /* Remove draggable appearance */
+    .terminal-header {
+        cursor: default !important;
+    }
+}
+
+/* Ensure minimum height for smaller screens */
+@media (max-height: 600px) {
+    .terminal-window {
+        height: 70%;
+        min-height: 300px;
+    }
+    
+    .welcome-message p {
+        margin-bottom: 5px;
+        font-size: 0.85rem;
+    }
+    
+    .sidebar-section {
+        margin-bottom: 15px;
+    }
+}
+
+/* Ultra-compact mode for very small screens */
+@media (max-width: 400px), (max-height: 500px) {
+    .terminal-window {
+        min-width: 280px;
+        min-height: 250px;
+        width: 95%;
+    }
+    
+    .mobile-banner {
+        font-size: 0.7rem;
+        line-height: 1;
+        margin-bottom: 8px;
+    }
+    
+    .welcome-message p {
+        font-size: 0.8rem;
+        margin-bottom: 4px;
+    }
+    
+    .terminal-body {
+        padding: 8px;
+    }
+    
+    .prompt {
+        margin-right: 5px;
+    }
+    
+    #commandInput {
+        font-size: 12px;
+    }
+    
+    .command-output {
+        padding: 3px 0;
+        font-size: 0.8rem;
+    }
+    
+    .sidebar {
+        padding: 10px;
+    }
+    
+    .sidebar-section h3 {
+        font-size: 1rem;
+        margin-bottom: 8px;
+    }
+    
+    .command-list li, .tips-list li {
+        font-size: 0.8rem;
+        margin-bottom: 4px;
+    }
+}
