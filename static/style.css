@@ -143,6 +143,9 @@ body {
     align-items: center;
     padding-top: 5px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
+    position: sticky;
+    bottom: 0;
+    background-color: var(--terminal-bg);
 }
 
 .prompt {
@@ -159,6 +162,8 @@ body {
     color: var(--terminal-text);
     font-family: 'IBM Plex Mono', monospace;
     font-size: 14px;
+    -webkit-appearance: none; /* Remove default iOS styling */
+    border-radius: 0; /* Remove rounded corners on iOS */
 }
 
 /* Make terminal text selectable/copy-pastable */
@@ -349,6 +354,7 @@ body {
         height: auto;
         min-height: 100vh;
         overflow-x: hidden; /* Prevent horizontal scrolling */
+        position: relative;
     }
     
     .container {
@@ -359,6 +365,8 @@ body {
         max-width: none;
         position: static;
         padding-bottom: 30px;
+        display: flex;
+        flex-direction: column-reverse; /* Show sidebar first on mobile */
     }
     
     .terminal-window {
@@ -367,7 +375,7 @@ body {
         position: relative; /* Initial position is relative */
         top: 0;
         left: 0;
-        margin: 20px auto;
+        margin: 0 auto 20px auto;
         border-radius: 6px;
         min-width: 280px;
         min-height: 250px;
@@ -395,9 +403,10 @@ body {
         height: auto;
         position: relative;
         padding: 15px;
-        margin: 20px auto;
+        margin: 20px auto 0 auto;
         border-radius: 6px;
         z-index: 1; /* Lower z-index than terminal */
+        order: -1; /* Ensures sidebar is shown first */
     }
     
     /* Ensure terminal body scrolls properly on mobile */
@@ -409,6 +418,12 @@ body {
     /* Make sure text input works well on mobile */
     #commandInput {
         font-size: 16px; /* Prevent zoom on iOS */
+    }
+    
+    /* Prevent zoom-in on input focus */
+    input[type="text"] {
+        font-size: 16px; /* iOS requires at least 16px to prevent zoom */
+        max-height: 100%;
     }
 }
 
@@ -439,14 +454,27 @@ body {
         position: relative !important; /* Force relative positioning */
         top: auto !important;
         left: auto !important;
-        margin: 20px auto !important;
+        margin: 0 auto 20px auto !important;
         transform: none !important;
         width: 90% !important;
+        height: auto !important; /* Allow content to determine height */
+        min-height: 300px; /* Ensure minimum height */
+        max-height: 60vh !important; /* Cap maximum height */
     }
     
     /* Remove draggable appearance */
     .terminal-header {
         cursor: default !important;
+    }
+    
+    /* Ensure sidebar is fully visible */
+    .sidebar {
+        display: block !important;
+        position: relative !important;
+        right: auto !important;
+        top: auto !important;
+        order: -1 !important;
+        margin-bottom: 20px !important;
     }
 }
 
@@ -473,6 +501,7 @@ body {
         min-width: 280px;
         min-height: 250px;
         width: 95%;
+        max-height: 50vh !important;
     }
     
     .mobile-banner {
@@ -495,7 +524,7 @@ body {
     }
     
     #commandInput {
-        font-size: 12px;
+        font-size: 16px; /* Keep at 16px to prevent zoom on iOS */
     }
     
     .command-output {
@@ -505,6 +534,8 @@ body {
     
     .sidebar {
         padding: 10px;
+        width: 95% !important;
+        margin: 0 auto 20px auto !important;
     }
     
     .sidebar-section h3 {
@@ -515,5 +546,16 @@ body {
     .command-list li, .tips-list li {
         font-size: 0.8rem;
         margin-bottom: 4px;
+    }
+    
+    /* Ensure hint text is visible */
+    .hint-text {
+        display: block !important;
+        font-size: 0.8rem;
+    }
+    
+    /* Add spacing between sections */
+    .container {
+        padding-top: 10px;
     }
 }

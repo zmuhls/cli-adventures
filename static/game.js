@@ -211,6 +211,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // Resize handler to adapt to viewport changes
         window.addEventListener('resize', handleResize);
         
+        // Expose hint text by default on mobile
+        if (isMobile || isNarrowViewport) {
+            const hintText = document.querySelector('.hint-text');
+            if (hintText) {
+                hintText.style.display = 'block';
+            }
+        }
+        
         // Initial positioning setup
         setupInitialPosition();
         
@@ -226,7 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 element.style.position = 'relative';
                 element.style.top = '';
                 element.style.left = '';
-                element.style.margin = '20px auto';
+                element.style.margin = '0 auto 20px auto';
             } else {
                 // Desktop: absolute positioning with set coordinates
                 element.style.position = 'absolute';
@@ -256,6 +264,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // Update cursor when viewport size changes
             updateDragCursor();
             
+            // Show hint text for mobile/narrow viewports
+            const hintText = document.querySelector('.hint-text');
+            if ((isMobile || isNarrowViewport) && hintText) {
+                hintText.style.display = 'block';
+            }
+            
             // If switching between mobile and desktop modes, reset positioning
             if (wasMobile !== isMobile || wasNarrowViewport !== isNarrowViewport) {
                 // If we're now in a narrow viewport, force the terminal back to default position
@@ -263,7 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     element.style.position = 'relative';
                     element.style.top = '';
                     element.style.left = '';
-                    element.style.margin = '20px auto';
+                    element.style.margin = '0 auto 20px auto';
                     element.style.zIndex = '';
                 } else {
                     setupInitialPosition();
@@ -272,6 +286,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 // On regular desktop resize, ensure the window stays in viewport
                 constrainToViewport();
             }
+            
+            // Ensure input is properly visible when focused
+            document.getElementById('commandInput').addEventListener('focus', function() {
+                // Scroll the terminal body to show the input line
+                if (isMobile) {
+                    const terminalBody = document.querySelector('.terminal-body');
+                    if (terminalBody) {
+                        terminalBody.scrollTop = terminalBody.scrollHeight;
+                    }
+                }
+            });
         }
         
         // Keep element within viewport bounds
