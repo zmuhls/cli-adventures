@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let historyIndex = -1;
     let currentLocation = 'home';
     
+    // Always show hints on page load
+    hintText.style.display = 'block';
+    
     // Game state
     const game = new CLIGame();
     
@@ -20,6 +23,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Initialize command input focus
     commandInput.focus();
+    
+    // Auto ls function removed to ensure proper ls behavior
     
     // Support copy-paste functionality
     document.addEventListener('copy', (e) => {
@@ -52,13 +57,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // Toggle hint visibility
+    // Toggle hint visibility - but ensure it's always visible on mobile
     hintToggle.addEventListener('click', () => {
-        if (hintText.style.display === 'block') {
-            hintText.style.display = 'none';
-        } else {
-            hintText.style.display = 'block';
-        }
+        // Do nothing - hints are now always visible
+        // This ensures instructions are always available
     });
     
     // Handle command execution
@@ -181,7 +183,12 @@ document.addEventListener('DOMContentLoaded', () => {
             displayName = currentLocation.split('_').pop();
         }
         
-        promptElement.textContent = `/${displayName}$`;
+        // Use ~ for home directory (standard terminal convention)
+        if (displayName === 'home') {
+            promptElement.textContent = `~$`;
+        } else {
+            promptElement.textContent = `/${displayName}$`;
+        }
     }
     
     // Function to make an element draggable with mouse and touch support
@@ -270,6 +277,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 hintText.style.display = 'block';
             }
             
+            // Show welcome instructions initially, regardless of viewport
+            // This ensures mobile users see instructions without needing to toggle
+            document.querySelector('.hint-text').style.display = 'block';
+            
             // If switching between mobile and desktop modes, reset positioning
             if (wasMobile !== isMobile || wasNarrowViewport !== isNarrowViewport) {
                 // If we're now in a narrow viewport, force the terminal back to default position
@@ -292,8 +303,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Scroll the terminal body to show the input line
                 if (isMobile) {
                     const terminalBody = document.querySelector('.terminal-body');
+                    const terminalWindow = document.querySelector('.terminal-window');
+                    
                     if (terminalBody) {
+                        // Scroll to the input
                         terminalBody.scrollTop = terminalBody.scrollHeight;
+                        
+                        // Ensure the terminal window is in view
+                        terminalWindow.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                        
+                        // Slightly delay a second scroll to overcome browser behavior
+                        setTimeout(() => {
+                            terminalBody.scrollTop = terminalBody.scrollHeight;
+                        }, 100);
                     }
                 }
             });
@@ -614,11 +636,41 @@ document.addEventListener('DOMContentLoaded', () => {
             const incompleteLessons = this.lessons.filter(lesson => !this.completed_lessons.has(lesson.id));
             if (incompleteLessons.length > 0 && incompleteLessons[0].success_condition(cmd, args)) {
                 const lesson = incompleteLessons[0];
+                
+                // Get command output first, so we can show it properly
+                const cmdOutput = this._executeCommand(cmd, args);
+                
+                // Mark lesson as completed
                 this.completed_lessons.add(lesson.id);
-                const result = `🎉 Challenge completed: ${lesson.description}\n` + this._executeCommand(cmd, args);
+                
+                // Combine the success message with command output
+                const result = `🎉 Challenge completed: ${lesson.description}\n${cmdOutput}`;
                 
                 return {
                     result: result,
+                    location: this.current_location,
+                    challenge: this.getCurrentChallenge().description,
+                    challenge_hint: this.getCurrentChallenge().hint || ""
+                };
+            }
+            
+            // Special handling for common commands without args
+            // 'cd' without args should go to home directory
+            if (cmd === "cd" && args.length === 0) {
+                this.current_location = "home";
+                return {
+                    result: "Changed directory to home",
+                    location: this.current_location,
+                    challenge: this.getCurrentChallenge().description,
+                    challenge_hint: this.getCurrentChallenge().hint || ""
+                };
+            }
+            
+            // First check if the user is trying to run a filename as a command
+            // This is a common beginner error
+            if (this.world[this.current_location].items.includes(cmd)) {
+                return {
+                    result: `To view this file, type 'cat ${cmd}' instead.`,
                     location: this.current_location,
                     challenge: this.getCurrentChallenge().description,
                     challenge_hint: this.getCurrentChallenge().hint || ""
@@ -657,43 +709,31 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (cmd === "ls") {
                 const location = this.world[this.current_location];
                 
-                // Filter exits to prevent circular references
-                const filteredExits = [];
-                for (const exitDir of location.exits) {
-                    // Skip parent directory (already accessed via cd ..)
-                    if (this.current_location.includes("_") && exitDir === this.current_location.split("_")[0]) {
-                        continue;
-                    }
-                    
-                    // Skip directories that would cause a double navigation
-                    const namespacedKey = `${this.current_location}_${exitDir}`;
-                    if (exitDir in this.world && !(namespacedKey in this.world)) {
-                        // Check if current location is already a child of this exit
-                        let isParent = false;
-                        for (const parentExit of this.world[exitDir].exits) {
-                            if (parentExit === this.current_location || 
-                                (this.current_location.includes("_") && 
-                                parentExit === this.current_location.split("_").pop())) {
-                                isParent = true;
-                                break;
-                            }
-                        }
-                        
-                        if (!isParent) {
-                            filteredExits.push(exitDir);
-                        }
-                    } else {
-                        filteredExits.push(exitDir);
+                // Show all available exits/directories without complex filtering
+                // This ensures users can see all available folders in the directory
+                const filteredExits = [...location.exits];
+                
+                // Only filter out parent directories if needed to avoid circular references
+                if (this.current_location.includes("_")) {
+                    const parentDir = this.current_location.split("_")[0];
+                    const index = filteredExits.indexOf(parentDir);
+                    if (index > -1) {
+                        filteredExits.splice(index, 1);
                     }
                 }
                 
-                return location.items.join(" ") + " " + 
-                    filteredExits.map(exit => `\u001b[34m${exit}\u001b[0m`).join(" ");
+                // Format directories with ANSI blue color code
+                const coloredDirs = filteredExits.map(exit => `\u001b[34m${exit}\u001b[0m`);
+                
+                // Join files and directories with space between them, ensuring both are displayed
+                const items = location.items.join(" ");
+                const dirs = coloredDirs.join(" ");
+                return items + (items && dirs ? " " : "") + dirs;
             }
             
             else if (cmd === "cd") {
                 if (!args.length) {
-                    return "Usage: cd [directory]";
+                    return "Error: Missing directory name. Use 'cd [dir]' to change directories.";
                 }
                 
                 const destination = args[0];
@@ -707,7 +747,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             return `Changed directory to ${parentDir}`;
                         }
                     }
-                    return "Already at root directory";
+                    return "Error: Cannot move above root directory.";
                 }
                 
                 // Handle cd ~ (return to home)
@@ -736,22 +776,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
                 else {
-                    return `Cannot find directory: ${destination}`;
+                    return `Error: Directory '${destination}' not found.`;
                 }
             }
             
             else if (cmd === "cat") {
                 if (!args.length) {
-                    return "Usage: cat [file]";
+                    return "Error: Missing file name. Use 'cat [file]' to view file contents.";
                 }
                 
                 const filename = args[0];
                 if (!this.world[this.current_location].items.includes(filename)) {
-                    return `File not found: ${filename}`;
+                    return `Error: File '${filename}' not found.`;
                 }
                 
                 if (!(filename in this.files)) {
-                    return `Cannot display contents of ${filename}`;
+                    return `Error: Cannot display contents of '${filename}'.`;
                 }
                 
                 return this.files[filename];
@@ -767,7 +807,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     displayPath = displayPath.split("_").pop();
                 }
                 
-                return `/${displayPath}`;
+                // Use standard convention: ~ for home, / for other directories
+                if (displayPath === "home") {
+                    return "~";
+                } else {
+                    return `/${displayPath}`;
+                }
             }
             
             else if (cmd === "clear") {
@@ -816,12 +861,12 @@ document.addEventListener('DOMContentLoaded', () => {
             
             else if (cmd === "mkdir") {
                 if (!args.length) {
-                    return "Usage: mkdir [directory]";
+                    return "Error: Missing directory name. Use 'mkdir [dir]' to create a directory.";
                 }
                 
                 const newDir = args[0];
                 if (this.world[this.current_location].exits.includes(newDir)) {
-                    return `Directory already exists: ${newDir}`;
+                    return `Error: Directory '${newDir}' already exists.`;
                 }
                 
                 // Create a new directory
@@ -854,7 +899,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             else if (cmd === "touch") {
                 if (!args.length) {
-                    return "Usage: touch [filename]";
+                    return "Error: Missing file name. Use 'touch [file]' to create a file.";
                 }
                 
                 const filename = args[0];
@@ -871,12 +916,12 @@ document.addEventListener('DOMContentLoaded', () => {
             
             else if (cmd === "rm") {
                 if (!args.length) {
-                    return "Usage: rm [filename]";
+                    return "Error: Missing file name. Use 'rm [file]' to remove a file.";
                 }
                 
                 const filename = args[0];
                 if (!this.world[this.current_location].items.includes(filename)) {
-                    return `File not found: ${filename}`;
+                    return `Error: File '${filename}' not found.`;
                 }
                 
                 // Remove the file
@@ -892,7 +937,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             else if (cmd === "mv") {
                 if (args.length < 2) {
-                    return "Usage: mv [source] [destination]";
+                    return "Error: Missing arguments. Use 'mv [src] [dst]' to move or rename a file.";
                 }
                 
                 const source = args[0];
@@ -901,10 +946,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Special case for moving treasure.json to archive/relics to complete mission
                 if (source === "treasure.json" && 
                     this.current_location === "hidden_vault" && 
-                    destination === "archive/relics/treasure.json") {
+                    (destination === "archive/relics/treasure.json" || 
+                     destination === "~/home" || 
+                     destination.startsWith("/") ||
+                     destination.includes("archive"))) {
                     
-                    // Check if archive and relics exist
-                    if ("archive" in this.world && this.world["archive"].exits.includes("relics")) {
+                    // Check if we're moving to home directory
+                    if (destination === "~/home" || destination === "/home") {
+                        // Remove from hidden_vault
+                        const index = this.world["hidden_vault"].items.indexOf("treasure.json");
+                        this.world["hidden_vault"].items.splice(index, 1);
+                        
+                        // Add to home
+                        if (!this.world["home"].items.includes("treasure.json")) {
+                            this.world["home"].items.push("treasure.json");
+                        }
+                        
+                        return `Moved treasure.json to ${destination}`;
+                    }
+                    // Check if archive and relics exist for mission completion
+                    else if ("archive" in this.world && this.world["archive"].exits.includes("relics")) {
                         // Remove from hidden_vault
                         const index = this.world["hidden_vault"].items.indexOf("treasure.json");
                         this.world["hidden_vault"].items.splice(index, 1);
@@ -925,7 +986,109 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Check if source exists in current location
                 if (!this.world[this.current_location].items.includes(source)) {
-                    return `Source file not found: ${source}`;
+                    return `Error: File '${source}' not found.`;
+                }
+                
+                // Check if destination is a relative or absolute path
+                if (destination.includes('/') || destination.startsWith('~') || destination === '..' || destination.startsWith('./')) {
+                    // Handle parent directory case
+                    if (destination === '..') {
+                        // Find parent directory
+                        let parentDir = null;
+                        
+                        // Look for the parent of the current location
+                        for (const [dir, data] of Object.entries(this.world)) {
+                            if (data.exits.includes(this.current_location)) {
+                                parentDir = dir;
+                                break;
+                            }
+                        }
+                        
+                        if (!parentDir) {
+                            return `\u001b[31mError: Cannot determine parent directory.\u001b[0m`;
+                        }
+                        
+                        // Special case for moving treasure.json from hidden_vault to its parent (projects)
+                        if (source === "treasure.json" && this.current_location === "hidden_vault") {
+                            // Remove from hidden_vault
+                            const index = this.world["hidden_vault"].items.indexOf("treasure.json");
+                            if (index > -1) {
+                                this.world["hidden_vault"].items.splice(index, 1);
+                            }
+                            
+                            // Add to parent directory
+                            if (!this.world[parentDir].items.includes("treasure.json")) {
+                                this.world[parentDir].items.push("treasure.json");
+                            }
+                            
+                            return `Moved ${source} to ${parentDir}`;
+                        }
+                        
+                        // For other files and directories, handle parent directory move
+                        return `\u001b[31mError: For security reasons, moving to parent directory is only supported for the special treasure.json file.\u001b[0m`;
+                    }
+                    
+                    // Parse the path components for other paths
+                    let targetDir = destination.split('/')[0];
+                    
+                    // Handle home shortcut
+                    if (targetDir === '~' || targetDir === '' || targetDir === '.') {
+                        targetDir = 'home';
+                    }
+                    
+                    // Check if the specified directory exists
+                    if (!(targetDir in this.world)) {
+                        return `\u001b[31mError: Cannot move to '${destination}'. Directory '${targetDir}' does not exist.\u001b[0m`;
+                    }
+                    
+                    // Special case for treasure.json - this is required for the game mission
+                    if (source === "treasure.json" && (
+                        destination.includes("archive/relics") || 
+                        destination.startsWith("archive/") ||
+                        destination.startsWith("/archive/") ||
+                        destination === "archive" ||
+                        destination === "relics"
+                    )) {
+                        // Check if archive exists
+                        if (!("archive" in this.world)) {
+                            return `\u001b[31mError: Directory 'archive' does not exist. You need to unzip the archive.zip file first.\u001b[0m`;
+                        }
+                        
+                        // Check if relics exists 
+                        if (!this.world["archive"].exits.includes("relics") && destination.includes("relics")) {
+                            return `\u001b[31mError: Directory 'relics' does not exist. Create it with 'mkdir relics' when in the archive directory.\u001b[0m`;
+                        }
+                        
+                        // If in the hidden_vault with treasure.json, allow the move to archive/relics
+                        if (this.current_location === "hidden_vault") {
+                            // Remove treasure from hidden_vault
+                            const index = this.world["hidden_vault"].items.indexOf("treasure.json");
+                            if (index > -1) {
+                                this.world["hidden_vault"].items.splice(index, 1);
+                            }
+                            
+                            // Add to relics directory
+                            if ("relics" in this.world && !this.world["relics"].items.includes("treasure.json")) {
+                                this.world["relics"].items.push("treasure.json");
+                                this.mission_complete = true;
+                                return "\u001b[32m🎉 MISSION ACCOMPLISHED! 🎉\u001b[0m\nYou've successfully returned the treasure to its rightful place in archive/relics!";
+                            } else {
+                                // Add to archive if relics doesn't exist yet
+                                this.world["archive"].items.push("treasure.json");
+                                return `Moved treasure.json to archive. Now create the relics directory and move it there to complete your mission.`;
+                            }
+                        } else {
+                            return `\u001b[31mError: The treasure.json file must be moved from the hidden_vault directory.\u001b[0m`;
+                        }
+                    }
+                    
+                    // Special case for the example path "home/projects"
+                    if (destination.includes("home/projects") || destination.includes("projects/hidden_vault")) {
+                        return `\u001b[31mError: Path '${destination}' is not a valid destination. You may need to first cd to the directory and then use mv.\u001b[0m`;
+                    }
+                    
+                    // For other cross-directory moves, provide a helpful error
+                    return `\u001b[31mError: For this simple training system, cross-directory moves are only supported for the mission objective (moving treasure.json to archive/relics).\u001b[0m`;
                 }
                 
                 // Regular move/rename within the same directory
@@ -943,7 +1106,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             else if (cmd === "cp") {
                 if (args.length < 2) {
-                    return "Usage: cp [source] [destination]";
+                    return "Error: Missing arguments. Use 'cp [src] [dst]' to copy a file.";
                 }
                 
                 const source = args[0];
@@ -951,7 +1114,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Check if source exists
                 if (!this.world[this.current_location].items.includes(source)) {
-                    return `Source file not found: ${source}`;
+                    return `Error: File '${source}' not found.`;
                 }
                 
                 // Copy the file
@@ -966,13 +1129,13 @@ document.addEventListener('DOMContentLoaded', () => {
             
             else if (cmd === "unzip") {
                 if (!args.length) {
-                    return "Usage: unzip [zipfile]";
+                    return "Error: Missing archive name. Use 'unzip [file.zip]' to extract a zip file.";
                 }
                 
                 const zipfile = args[0];
                 
                 if (this.current_location !== "downloads" || zipfile !== "archive.zip") {
-                    return `Cannot extract ${zipfile}. Make sure you're in the right directory and the file exists.`;
+                    return `Error: '${zipfile}' is not a valid zip archive.`;
                 }
                 
                 // "Extract" the archive by adding it to the world
@@ -991,7 +1154,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             else {
-                return `Unknown command: ${cmd}. Type 'help' for available commands.`;
+                return `Error: Command not recognized. Type 'help' for a list of valid commands.`;
             }
         };
         
