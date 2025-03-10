@@ -618,7 +618,7 @@ document.addEventListener('DOMContentLoaded', () => {
         this.processCommand = function(command) {
             if (!command) {
                 return {
-                    result: "Please enter a command",
+                    result: "\u001b[31mError: No command entered. Type 'help' for a list of available commands.\u001b[0m",
                     location: this.current_location,
                     challenge: this.getCurrentChallenge().description,
                     challenge_hint: this.getCurrentChallenge().hint || ""
@@ -733,21 +733,30 @@ document.addEventListener('DOMContentLoaded', () => {
             
             else if (cmd === "cd") {
                 if (!args.length) {
-                    return "Error: Missing directory name. Use 'cd [dir]' to change directories.";
+                    return "\u001b[31mError: No directory specified. Use 'cd [directory]' to navigate.\u001b[0m";
                 }
                 
                 const destination = args[0];
                 
+                // Check if user tried to cd into a file
+                if (this.world[this.current_location].items.includes(destination)) {
+                    return `\u001b[31mError: '${destination}' is a file. You can only 'cd' into directories.\u001b[0m`;
+                }
+                
                 // Handle cd .. (move to parent directory)
                 if (destination === "..") {
                     // Find the parent directory that has current location as an exit
+                    let foundParent = false;
                     for (const [parentDir, data] of Object.entries(this.world)) {
                         if (data.exits.includes(this.current_location)) {
                             this.current_location = parentDir;
+                            foundParent = true;
                             return `Changed directory to ${parentDir}`;
                         }
                     }
-                    return "Error: Cannot move above root directory.";
+                    if (!foundParent) {
+                        return "\u001b[31mError: Already at the root directory; you cannot go any higher.\u001b[0m";
+                    }
                 }
                 
                 // Handle cd ~ (return to home)
@@ -776,22 +785,34 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
                 else {
-                    return `Error: Directory '${destination}' not found.`;
+                    return `\u001b[31mError: Directory '${destination}' not found here. Check your spelling or use 'ls' to verify available directories.\u001b[0m`;
                 }
             }
             
             else if (cmd === "cat") {
                 if (!args.length) {
-                    return "Error: Missing file name. Use 'cat [file]' to view file contents.";
+                    return "\u001b[31mError: Specify a file to view its contents. Usage: 'cat [filename]'.\u001b[0m";
                 }
                 
                 const filename = args[0];
+                
+                // Check if user tried to cat a directory
+                if (this.world[this.current_location].exits.includes(filename)) {
+                    return `\u001b[31mError: '${filename}' is a directory. You can only use 'cat' to view file contents.\u001b[0m`;
+                }
+                
                 if (!this.world[this.current_location].items.includes(filename)) {
-                    return `Error: File '${filename}' not found.`;
+                    return `\u001b[31mError: File '${filename}' does not exist here. Use 'ls' to verify available files.\u001b[0m`;
                 }
                 
                 if (!(filename in this.files)) {
-                    return `Error: Cannot display contents of '${filename}'.`;
+                    return `\u001b[31mError: Cannot display contents of '${filename}'.\u001b[0m`;
+                }
+                
+                // Special hint for treasure.json if user repeatedly tries to cat it
+                if (filename === "treasure.json" && this.history.filter(cmd => cmd.startsWith("cat treasure")).length > 2) {
+                    const treasureContent = this.files[filename];
+                    return treasureContent + "\n\nHint: 'treasure.json' seems like something you'd want to move, not just read.";
                 }
                 
                 return this.files[filename];
@@ -861,12 +882,21 @@ document.addEventListener('DOMContentLoaded', () => {
             
             else if (cmd === "mkdir") {
                 if (!args.length) {
-                    return "Error: Missing directory name. Use 'mkdir [dir]' to create a directory.";
+                    return "\u001b[31mError: Specify a name. Usage: 'mkdir [dirname]'.\u001b[0m";
+                }
+                
+                if (args.length > 1) {
+                    return "\u001b[31mError: Too many arguments provided. Usage: 'mkdir [dirname]'.\u001b[0m";
                 }
                 
                 const newDir = args[0];
                 if (this.world[this.current_location].exits.includes(newDir)) {
-                    return `Error: Directory '${newDir}' already exists.`;
+                    return `\u001b[31mError: Directory '${newDir}' already exists.\u001b[0m`;
+                }
+                
+                // Check if trying to create directory with same name as a file
+                if (this.world[this.current_location].items.includes(newDir)) {
+                    return `\u001b[31mError: Cannot create directory '${newDir}'. A file with that name already exists.\u001b[0m`;
                 }
                 
                 // Create a new directory
@@ -892,6 +922,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         "items": [],
                         "exits": ["archive"]
                     };
+                    
+                    // Special hint if user is nearing mission completion
+                    if (this.world["hidden_vault"] && this.world["hidden_vault"].items.includes("treasure.json")) {
+                        return `Created directory: ${newDir}\n\nHint: Now you can move the treasure.json from hidden_vault to archive/relics!`;
+                    }
                 }
                 
                 return `Created directory: ${newDir}`;
@@ -899,10 +934,20 @@ document.addEventListener('DOMContentLoaded', () => {
             
             else if (cmd === "touch") {
                 if (!args.length) {
-                    return "Error: Missing file name. Use 'touch [file]' to create a file.";
+                    return "\u001b[31mError: Specify a name. Usage: 'touch [filename]'.\u001b[0m";
+                }
+                
+                if (args.length > 1) {
+                    return "\u001b[31mError: Too many arguments provided. Usage: 'touch [filename]'.\u001b[0m";
                 }
                 
                 const filename = args[0];
+                
+                // Check if trying to create a file with the same name as a directory
+                if (this.world[this.current_location].exits.includes(filename)) {
+                    return `\u001b[31mError: Cannot create file '${filename}'. A directory with that name already exists.\u001b[0m`;
+                }
+                
                 if (this.world[this.current_location].items.includes(filename)) {
                     return `Updated timestamp of ${filename}`;
                 }
@@ -916,12 +961,28 @@ document.addEventListener('DOMContentLoaded', () => {
             
             else if (cmd === "rm") {
                 if (!args.length) {
-                    return "Error: Missing file name. Use 'rm [file]' to remove a file.";
+                    return "\u001b[31mError: Specify a file to remove. Usage: 'rm [filename]'.\u001b[0m";
                 }
                 
                 const filename = args[0];
+                
+                // Check if trying to remove a directory
+                if (this.world[this.current_location].exits.includes(filename)) {
+                    return `\u001b[31mError: '${filename}' is a directory. Current permissions do not allow directory removal.\u001b[0m`;
+                }
+                
                 if (!this.world[this.current_location].items.includes(filename)) {
-                    return `Error: File '${filename}' not found.`;
+                    return `\u001b[31mError: Cannot remove '${filename}': File does not exist.\u001b[0m`;
+                }
+                
+                // Special warning for important files like treasure.json
+                if (filename === "treasure.json" || filename === "mission.txt") {
+                    // Check if this is the second attempt to remove this file
+                    const rmAttempts = this.history.filter(cmd => cmd === `rm ${filename}`).length;
+                    
+                    if (rmAttempts === 1) {
+                        return `\u001b[31mWarning: You're attempting to remove a crucial file '${filename}'. Confirm? (try command again to confirm)\u001b[0m`;
+                    }
                 }
                 
                 // Remove the file
@@ -937,11 +998,45 @@ document.addEventListener('DOMContentLoaded', () => {
             
             else if (cmd === "mv") {
                 if (args.length < 2) {
-                    return "Error: Missing arguments. Use 'mv [src] [dst]' to move or rename a file.";
+                    return "\u001b[31mError: Missing arguments. Proper usage is 'mv [source] [destination]'.\u001b[0m";
+                }
+                
+                if (args.length > 2) {
+                    return "\u001b[31mError: Too many arguments provided. Use 'help' to confirm proper command usage.\u001b[0m";
                 }
                 
                 const source = args[0];
                 const destination = args[1];
+                
+                // Handle paths in source - users trying to reference files from other directories
+                if (source.includes('/')) {
+                    // Extract the path components
+                    const pathParts = source.split('/');
+                    const filename = pathParts.pop(); // Get the filename (last part)
+                    const firstDir = pathParts[0];
+                    
+                    // Specifically handle the example case from the challenge
+                    if (source.includes('projects/hidden_vault/treasure.json')) {
+                        return `\u001b[31mError: Cannot move '${source}': File does not exist here.\n\nTo access this file, you need to navigate to it first:\ncd projects\ncd hidden_vault\nmv treasure.json ${destination}\u001b[0m`;
+                    }
+                    
+                    // Generic path handling
+                    if (firstDir === '~' || firstDir === 'home' || this.world[this.current_location].exits.includes(firstDir)) {
+                        return `\u001b[31mError: Cannot move '${source}': You must first navigate to the directory containing the file.\u001b[0m`;
+                    }
+                    
+                    return `\u001b[31mError: Cannot move '${source}': File does not exist here.\u001b[0m`;
+                }
+                
+                // Check if source exists in current location (except for special cases below)
+                if (!this.world[this.current_location].items.includes(source) && source !== "treasure.json") {
+                    return `\u001b[31mError: Cannot move '${source}': File does not exist here.\u001b[0m`;
+                }
+                
+                // Check if trying to move into itself
+                if (source === destination) {
+                    return `\u001b[31mError: Invalid operation. Cannot move '${source}' into itself.\u001b[0m`;
+                }
                 
                 // Special case for moving treasure.json to archive/relics to complete mission
                 if (source === "treasure.json" && 
@@ -980,13 +1075,17 @@ document.addEventListener('DOMContentLoaded', () => {
                         
                         return "\u001b[32m🎉 MISSION ACCOMPLISHED! 🎉\u001b[0m\nYou've successfully returned the treasure to its rightful place in archive/relics!";
                     } else {
-                        return "You need to create the proper directory structure first (archive/relics).";
+                        if (!("archive" in this.world)) {
+                            return "\u001b[31mError: Cannot move '${source}': Destination 'archive' not found.\u001b[0m\n\nHint: You need to extract archive.zip first using 'unzip archive.zip' in the downloads directory.";
+                        } else {
+                            return "\u001b[31mError: Cannot move to 'relics': Directory not found.\u001b[0m\n\nHint: You need to create the relics directory inside archive using 'mkdir relics'.";
+                        }
                     }
                 }
                 
-                // Check if source exists in current location
+                // Additional check for source file (should not be triggered due to our earlier check, but keeping for safety)
                 if (!this.world[this.current_location].items.includes(source)) {
-                    return `Error: File '${source}' not found.`;
+                    return `\u001b[31mError: Cannot move '${source}': File does not exist.\u001b[0m`;
                 }
                 
                 // Check if destination is a relative or absolute path
@@ -1082,13 +1181,21 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                     
-                    // Special case for the example path "home/projects"
-                    if (destination.includes("home/projects") || destination.includes("projects/hidden_vault")) {
-                        return `\u001b[31mError: Path '${destination}' is not a valid destination. You may need to first cd to the directory and then use mv.\u001b[0m`;
+                    // Special case for cross-directory paths
+                    if (destination.includes('/') || source.includes('/')) {
+                        // Check if this is a common path pattern like "home/directory/file"
+                        // or "projects/hidden_vault/treasure.json"
+                        const invalidPaths = ["home/projects", "projects/hidden_vault", "downloads/archive"];
+                        
+                        for (const invalidPath of invalidPaths) {
+                            if (source.includes(invalidPath) || destination.includes(invalidPath)) {
+                                return `\u001b[31mError: Cannot move files between directories using paths. You need to:\n1. Navigate to the source directory with 'cd'\n2. Move the file to the destination directory\n\nExample:\ncd ${invalidPath.split('/')[0]}\ncd ${invalidPath.split('/')[1]}\nmv ${source.split('/').pop()} ${destination.split('/').pop()}\u001b[0m`;
+                            }
+                        }
+                        
+                        // Generic message for other cross-directory moves
+                        return `\u001b[31mError: For this simple training system, cross-directory moves are only supported for the mission objective (moving treasure.json to archive/relics).\n\nTip: You need to navigate to the directory containing the file first.\u001b[0m`;
                     }
-                    
-                    // For other cross-directory moves, provide a helpful error
-                    return `\u001b[31mError: For this simple training system, cross-directory moves are only supported for the mission objective (moving treasure.json to archive/relics).\u001b[0m`;
                 }
                 
                 // Regular move/rename within the same directory
@@ -1106,15 +1213,29 @@ document.addEventListener('DOMContentLoaded', () => {
             
             else if (cmd === "cp") {
                 if (args.length < 2) {
-                    return "Error: Missing arguments. Use 'cp [src] [dst]' to copy a file.";
+                    return "\u001b[31mError: Missing arguments. Proper usage is 'cp [source] [destination]'.\u001b[0m";
+                }
+                
+                if (args.length > 2) {
+                    return "\u001b[31mError: Too many arguments provided. Use 'help' to confirm proper command usage.\u001b[0m";
                 }
                 
                 const source = args[0];
                 const destination = args[1];
                 
+                // Check if trying to copy into itself
+                if (source === destination) {
+                    return `\u001b[31mError: Invalid operation. Cannot copy '${source}' into itself.\u001b[0m`;
+                }
+                
                 // Check if source exists
                 if (!this.world[this.current_location].items.includes(source)) {
-                    return `Error: File '${source}' not found.`;
+                    return `\u001b[31mError: Cannot copy '${source}': File does not exist here.\u001b[0m`;
+                }
+                
+                // Check if destination already exists
+                if (this.world[this.current_location].items.includes(destination)) {
+                    return `\u001b[31mWarning: '${destination}' already exists. Confirm overwrite? (y/n)\u001b[0m`;
                 }
                 
                 // Copy the file
@@ -1129,13 +1250,29 @@ document.addEventListener('DOMContentLoaded', () => {
             
             else if (cmd === "unzip") {
                 if (!args.length) {
-                    return "Error: Missing archive name. Use 'unzip [file.zip]' to extract a zip file.";
+                    return "\u001b[31mError: Specify a file to unzip. Usage: 'unzip [filename.zip]'.\u001b[0m";
                 }
                 
                 const zipfile = args[0];
                 
+                // Check if file exists
+                if (!this.world[this.current_location].items.includes(zipfile)) {
+                    return `\u001b[31mError: Zip archive '${zipfile}' not found.\u001b[0m`;
+                }
+                
+                // Check if it's a zip file
+                if (!zipfile.endsWith('.zip')) {
+                    return `\u001b[31mError: '${zipfile}' is not a zip file. Use 'ls' to check available files.\u001b[0m`;
+                }
+                
+                // Check for archive.zip specifically in downloads
                 if (this.current_location !== "downloads" || zipfile !== "archive.zip") {
-                    return `Error: '${zipfile}' is not a valid zip archive.`;
+                    return `\u001b[31mError: '${zipfile}' is not a valid zip archive for this mission.\u001b[0m`;
+                }
+                
+                // Check if already extracted
+                if ("archive" in this.world) {
+                    return `\u001b[31mWarning: Archive already extracted. Files already exist here. Overwrite existing files? (y/n)\u001b[0m\n\nHint: Archive is already extracted. Continue with your mission!`;
                 }
                 
                 // "Extract" the archive by adding it to the world
@@ -1154,7 +1291,38 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             else {
-                return `Error: Command not recognized. Type 'help' for a list of valid commands.`;
+                // Suggest similar commands for typos
+                const availableCommands = ['help', 'ls', 'cd', 'cat', 'pwd', 'mkdir', 'touch', 'rm', 'mv', 'cp', 'clear', 'reset', 'unzip', 'exit'];
+                
+                // Find the closest command using basic string similarity
+                let closestCommand = '';
+                let closestDistance = Infinity;
+                
+                for (const command of availableCommands) {
+                    // Simple way to calculate string distance (not true Levenshtein)
+                    const distance = Math.abs(command.length - cmd.length);
+                    
+                    // Check if the command contains at least half of the letters from the input
+                    let matchingChars = 0;
+                    for (let i = 0; i < cmd.length; i++) {
+                        if (command.includes(cmd[i])) {
+                            matchingChars++;
+                        }
+                    }
+                    
+                    // If enough characters match and distance is low, consider it a potential match
+                    if (matchingChars >= cmd.length / 2 && distance < closestDistance) {
+                        closestDistance = distance;
+                        closestCommand = command;
+                    }
+                }
+                
+                // If we found a reasonably close command and it's not an exact match
+                if (closestCommand && closestCommand !== cmd && cmd.length > 1) {
+                    return `\u001b[31mError: Command '${cmd}' not recognized. Did you mean '${closestCommand}'?\u001b[0m`;
+                }
+                
+                return `\u001b[31mError: Command not recognized. Type 'help' for a list of valid commands.\u001b[0m`;
             }
         };
         

@@ -1,6 +1,6 @@
-# CLI Adventures
+# CLI Adventures [BETA]
 
-A web-based game for learning terminal commands through interactive challenges in a simulated CLI environment.
+A web-based game for learning terminal commands through interactive challenges in a simulated CLI environment. This is currently in beta - please submit a pull request if you find any bugs or have suggestions for improvements.
 
 ## About
 
