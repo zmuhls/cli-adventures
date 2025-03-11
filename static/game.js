@@ -509,9 +509,9 @@ document.addEventListener('DOMContentLoaded', () => {
             "projects": {
                 "description": "Your coding projects directory.",
                 "items": ["README.md"],
-                "exits": ["home", "hidden_vault"]
+                "exits": ["home", "vault"]
             },
-            "hidden_vault": {
+            "vault": {
                 "description": "A secret directory containing treasures.",
                 "items": ["treasure.json"],
                 "exits": ["projects"]
@@ -521,7 +521,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // File contents
         this.files = {
             "notes.txt": "Welcome to CLI Adventures!\nType 'help' to see available commands.",
-            "mission.txt": "MISSION BRIEFING:\nA precious treasure.json file has been stolen from the archive.zip/relics folder!\nThe thief has hidden it in the hidden_vault directory.\n\nYour mission:\n1. Find and recover the treasure.json file\n2. Use unzip command to extract the archive.zip\n3. Create a 'relics' directory inside the extracted archive if it doesn't exist\n4. Move the treasure.json file to its rightful place in archive/relics\n\nGood luck, agent!",
+            "mission.txt": "MISSION BRIEFING:\nA precious treasure.json file has been stolen from the archive.zip/relics folder!\nThe thief has hidden it in the vault directory.\n\nYour mission:\n1. Find and recover the treasure.json file\n2. Use unzip command to extract the archive.zip\n3. Create a 'relics' directory inside the extracted archive if it doesn't exist\n4. Move the treasure.json file to its rightful place in archive/relics\n\nGood luck, agent!",
             "secret.txt": "The password is 'opensesame'",
             "README.md": "# Project Documentation\nUse 'ls' to list files\nUse 'cd' to change directories\nUse 'cat' to read files",
             "treasure.json": JSON.stringify({"reward": "You've mastered basic CLI commands!", "value": "$1,000,000", "origin": "archive/relics"})
@@ -587,9 +587,9 @@ document.addEventListener('DOMContentLoaded', () => {
             {
                 "id": "find_treasure",
                 "description": "Locate the stolen treasure",
-                "challenge": "Navigate to the hidden_vault and verify the treasure.json file is there",
-                "success_condition": (cmd, args) => cmd === "ls" && this.current_location === "hidden_vault",
-                "hint": "First go to the projects directory with 'cd projects', then to 'cd hidden_vault'"
+                "challenge": "Navigate to the vault and verify the treasure.json file is there",
+                "success_condition": (cmd, args) => cmd === "ls" && this.current_location === "vault",
+                "hint": "First go to the projects directory with 'cd projects', then to 'cd vault'"
             },
             {
                 "id": "unzip_archive",
@@ -707,6 +707,29 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             else if (cmd === "ls") {
+                // Check if user provided arguments
+                if (args.length > 0) {
+                    const target = args[0];
+                    
+                    // Check if they're trying to ls a file
+                    if (this.world[this.current_location].items.includes(target)) {
+                        return `\u001b[31mError: '${target}' is a file, not a directory. You can use 'cat ${target}' to view its contents.\u001b[0m`;
+                    }
+                    
+                    // Check if they're trying to ls a directory path
+                    if (target.includes('/')) {
+                        return `\u001b[31mError: You need to navigate to that directory first using 'cd' before using 'ls'.\nTip: Use 'cd ${target.split('/')[0]}' to navigate, then 'ls'.\u001b[0m`;
+                    }
+                    
+                    // Check if they're trying to ls a directory that exists
+                    if (this.world[this.current_location].exits.includes(target)) {
+                        return `\u001b[31mError: To see the contents of '${target}', first navigate there with 'cd ${target}', then use 'ls'.\u001b[0m`;
+                    }
+                    
+                    // If the target doesn't exist anywhere
+                    return `\u001b[31mError: '${target}' not found. Check spelling or use 'ls' without arguments to see available files and directories.\u001b[0m`;
+                }
+                
                 const location = this.world[this.current_location];
                 
                 // Show all available exits/directories without complex filtering
@@ -741,6 +764,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Check if user tried to cd into a file
                 if (this.world[this.current_location].items.includes(destination)) {
                     return `\u001b[31mError: '${destination}' is a file. You can only 'cd' into directories.\u001b[0m`;
+                }
+                
+                // Check for common spacing errors
+                if (destination === ".." && args.length === 1 && command.includes("cd..")) {
+                    return `\u001b[31mError: 'cd..' is not recognized. Use 'cd ..' (with a space) to navigate to the parent directory.\u001b[0m`;
                 }
                 
                 // Handle cd .. (move to parent directory)
@@ -798,11 +826,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Check if user tried to cat a directory
                 if (this.world[this.current_location].exits.includes(filename)) {
-                    return `\u001b[31mError: '${filename}' is a directory. You can only use 'cat' to view file contents.\u001b[0m`;
+                    return `\u001b[31mError: '${filename}' is a directory. You can only use 'cat' to view file contents.\nTip: Use 'cd ${filename}' to navigate into the directory, then 'ls' to see its contents.\u001b[0m`;
                 }
                 
                 if (!this.world[this.current_location].items.includes(filename)) {
-                    return `\u001b[31mError: File '${filename}' does not exist here. Use 'ls' to verify available files.\u001b[0m`;
+                    // Check if file exists in a different directory to provide a helpful hint
+                    let fileLocation = null;
+                    for (const [dir, data] of Object.entries(this.world)) {
+                        if (data.items.includes(filename)) {
+                            fileLocation = dir;
+                            break;
+                        }
+                    }
+                    
+                    if (fileLocation) {
+                        // If the file exists elsewhere, give a hint about its location
+                        const displayDir = fileLocation.includes('_') ? fileLocation.split('_').pop() : fileLocation;
+                        return `\u001b[31mError: File '${filename}' does not exist in current directory. A file with this name exists in the '${displayDir}' directory.\nTip: Use 'cd' to navigate to that directory first, then 'cat ${filename}'.\u001b[0m`;
+                    } else {
+                        return `\u001b[31mError: File '${filename}' does not exist here. Use 'ls' to verify available files.\u001b[0m`;
+                    }
                 }
                 
                 if (!(filename in this.files)) {
@@ -868,9 +911,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     "projects": {
                         "description": "Your coding projects directory.",
                         "items": ["README.md"],
-                        "exits": ["home", "hidden_vault"]
+                        "exits": ["home", "vault"]
                     },
-                    "hidden_vault": {
+                    "vault": {
                         "description": "A secret directory containing treasures.",
                         "items": ["treasure.json"],
                         "exits": ["projects"]
@@ -1040,7 +1083,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Special case for moving treasure.json to archive/relics to complete mission
                 if (source === "treasure.json" && 
-                    this.current_location === "hidden_vault" && 
+                    this.current_location === "vault" && 
                     (destination === "archive/relics/treasure.json" || 
                      destination === "~/home" || 
                      destination.startsWith("/") ||
@@ -1048,9 +1091,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     // Check if we're moving to home directory
                     if (destination === "~/home" || destination === "/home") {
-                        // Remove from hidden_vault
-                        const index = this.world["hidden_vault"].items.indexOf("treasure.json");
-                        this.world["hidden_vault"].items.splice(index, 1);
+                        // Remove from vault
+                        const index = this.world["vault"].items.indexOf("treasure.json");
+                        this.world["vault"].items.splice(index, 1);
                         
                         // Add to home
                         if (!this.world["home"].items.includes("treasure.json")) {
@@ -1061,9 +1104,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     // Check if archive and relics exist for mission completion
                     else if ("archive" in this.world && this.world["archive"].exits.includes("relics")) {
-                        // Remove from hidden_vault
-                        const index = this.world["hidden_vault"].items.indexOf("treasure.json");
-                        this.world["hidden_vault"].items.splice(index, 1);
+                        // Remove from vault
+                        const index = this.world["vault"].items.indexOf("treasure.json");
+                        this.world["vault"].items.splice(index, 1);
                         
                         // Add to relics
                         if (!this.world["relics"].items.includes("treasure.json")) {
@@ -1107,12 +1150,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             return `\u001b[31mError: Cannot determine parent directory.\u001b[0m`;
                         }
                         
-                        // Special case for moving treasure.json from hidden_vault to its parent (projects)
-                        if (source === "treasure.json" && this.current_location === "hidden_vault") {
-                            // Remove from hidden_vault
-                            const index = this.world["hidden_vault"].items.indexOf("treasure.json");
+                        // Special case for moving treasure.json from vault to its parent (projects)
+                        if (source === "treasure.json" && this.current_location === "vault") {
+                            // Remove from vault
+                            const index = this.world["vault"].items.indexOf("treasure.json");
                             if (index > -1) {
-                                this.world["hidden_vault"].items.splice(index, 1);
+                                this.world["vault"].items.splice(index, 1);
                             }
                             
                             // Add to parent directory
@@ -1158,12 +1201,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             return `\u001b[31mError: Directory 'relics' does not exist. Create it with 'mkdir relics' when in the archive directory.\u001b[0m`;
                         }
                         
-                        // If in the hidden_vault with treasure.json, allow the move to archive/relics
-                        if (this.current_location === "hidden_vault") {
-                            // Remove treasure from hidden_vault
-                            const index = this.world["hidden_vault"].items.indexOf("treasure.json");
+                        // If in the vault with treasure.json, allow the move to archive/relics
+                        if (this.current_location === "vault") {
+                            // Remove treasure from vault
+                            const index = this.world["vault"].items.indexOf("treasure.json");
                             if (index > -1) {
-                                this.world["hidden_vault"].items.splice(index, 1);
+                                this.world["vault"].items.splice(index, 1);
                             }
                             
                             // Add to relics directory
@@ -1177,7 +1220,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 return `Moved treasure.json to archive. Now create the relics directory and move it there to complete your mission.`;
                             }
                         } else {
-                            return `\u001b[31mError: The treasure.json file must be moved from the hidden_vault directory.\u001b[0m`;
+                            return `\u001b[31mError: The treasure.json file must be moved from the vault directory.\u001b[0m`;
                         }
                     }
                     
@@ -1185,7 +1228,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (destination.includes('/') || source.includes('/')) {
                         // Check if this is a common path pattern like "home/directory/file"
                         // or "projects/hidden_vault/treasure.json"
-                        const invalidPaths = ["home/projects", "projects/hidden_vault", "downloads/archive"];
+                        const invalidPaths = ["home/projects", "projects/vault", "downloads/archive"];
                         
                         for (const invalidPath of invalidPaths) {
                             if (source.includes(invalidPath) || destination.includes(invalidPath)) {
