@@ -596,7 +596,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 "id": "find_treasure",
                 "description": "Locate the stolen treasure",
                 "challenge": "Navigate to the hidden_vault and verify the treasure.json file is there",
-                "success_condition": (cmd, args) => cmd === "ls" && this.current_location === "hidden_vault",
+                "success_condition": (cmd, args) => (cmd === "ls" && this.current_location === "hidden_vault") || 
+                                                  (cmd === "cd" && args.length && 
+                                                   (args[0] === "hidden_vault" || args[0] === "projects/hidden_vault") && 
+                                                   this.current_location === "hidden_vault"),
                 "hint": "First go to the projects directory with 'cd projects', then to 'cd hidden_vault'"
             },
             {
@@ -604,7 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 "description": "Extract the archive.zip file",
                 "challenge": "Use the unzip command on archive.zip in the downloads directory",
                 "success_condition": (cmd, args) => cmd === "unzip" && args.length && args[0] === "archive.zip" && this.current_location === "downloads",
-                "hint": "First go to downloads with 'cd downloads', then use 'unzip archive.zip'"
+                "hint": "First navigate to your home directory with 'cd ~', then go to downloads with 'cd downloads', then use 'unzip archive.zip'"
             },
             {
                 "id": "create_relics",
@@ -776,7 +779,88 @@ document.addEventListener('DOMContentLoaded', () => {
                     return "\u001b[31mError: No directory specified. Use 'cd [directory]' to navigate.\u001b[0m";
                 }
                 
-                const destination = args[0];
+                // Check if the path includes multiple directories (e.g., "projects/hidden_vault")
+                const path = args[0];
+                if (path.includes('/')) {
+                    const pathParts = path.split('/').filter(part => part.length > 0);
+                    
+                    // Start from current location or home if path starts with "/"
+                    let currentPath = path.startsWith('/') ? 'home' : this.current_location;
+                    let successMessage = '';
+                    
+                    // Navigate through each part of the path
+                    for (let i = 0; i < pathParts.length; i++) {
+                        const part = pathParts[i];
+                        
+                        // Special cases
+                        if (part === '~') {
+                            currentPath = 'home';
+                            continue;
+                        } else if (part === '..') {
+                            // Handle parent directory navigation
+                            if (currentPath === 'home') {
+                                return "\u001b[31mError: Already at the root directory; you cannot go any higher.\u001b[0m";
+                            }
+                            
+                            // Use parent map for known relationships
+                            const parentMap = {
+                                "documents": "home",
+                                "downloads": "home",
+                                "projects": "home",
+                                "hidden_vault": "projects",
+                                "archive": "downloads"
+                            };
+                            
+                            if (currentPath in parentMap) {
+                                currentPath = parentMap[currentPath];
+                                continue;
+                            }
+                            
+                            // Fallback to searching for parent
+                            let foundParent = false;
+                            for (const [parentDir, data] of Object.entries(this.world)) {
+                                if (data.exits.includes(currentPath)) {
+                                    currentPath = parentDir;
+                                    foundParent = true;
+                                    break;
+                                }
+                            }
+                            
+                            if (!foundParent) {
+                                return "\u001b[31mError: Could not find parent directory for part of the path.\u001b[0m";
+                            }
+                            
+                            continue;
+                        }
+                        
+                        // Check if the directory exists in the world
+                        if (!this.world[currentPath].exits.includes(part)) {
+                            return `\u001b[31mError: Directory '${part}' not found in the path ${path}.\u001b[0m`;
+                        }
+                        
+                        // Check if it's a file
+                        if (this.world[currentPath].items.includes(part)) {
+                            return `\u001b[31mError: '${part}' is a file. You can only 'cd' into directories.\u001b[0m`;
+                        }
+                        
+                        // Check for namespaced directories
+                        const namespacedKey = `${currentPath}_${part}`;
+                        if (namespacedKey in this.world) {
+                            currentPath = namespacedKey;
+                        } else if (part in this.world) {
+                            currentPath = part;
+                        } else {
+                            return `\u001b[31mError: Cannot access '${part}' in the path ${path}.\u001b[0m`;
+                        }
+                    }
+                    
+                    // Successfully navigated the entire path
+                    this.current_location = currentPath;
+                    return `Changed directory to ${path}`;
+                }
+                
+                // Single directory navigation (original behavior)
+                const destination = path;
                 
                 // Check if user tried to cd into a file
                 if (this.world[this.current_location].items.includes(destination)) {
@@ -814,10 +898,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (data.exits.includes(this.current_location)) {
                             this.current_location = parentDir;
                             foundParent = true;
-                            return `Changed directory to ${parentDir}`;
+                            break;  // Found the parent, exit the loop
                         }
                     }
-                    if (!foundParent) {
+                    
+                    if (foundParent) {
+                        return `Changed directory to ${this.current_location}`;
+                    } else {
                         return "\u001b[31mError: Already at the root directory; you cannot go any higher.\u001b[0m";
                     }
                 }
@@ -1190,6 +1277,42 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
                 
+                // Additional support for moving files with paths, similar to treasure.json
+                if (destination.startsWith('/') || destination.includes('/')) {
+                    // Only allow this for files that exist in the current location
+                    if (this.world[this.current_location].items.includes(source)) {
+                        // Parse the destination path
+                        const pathParts = destination.replace(/^\/+/, '').split('/');
+                        
+                        // For paths like /downloads/archive/relics
+                        if (pathParts.length >= 2) {
+                            const targetDir = pathParts[0];
+                            
+                            // Check if the target directory exists
+                            if (targetDir in this.world) {
+                                // Basic check for direct children
+                                if (this.world[targetDir].exits.includes(pathParts[1])) {
+                                    // Move the file
+                                    const index = this.world[this.current_location].items.indexOf(source);
+                                    if (index > -1) {
+                                        this.world[this.current_location].items.splice(index, 1);
+                                    }
+                                    
+                                    // Add to target directory
+                                    const targetSubdir = pathParts[1]; 
+                                    if (this.world[targetSubdir] && !this.world[targetSubdir].items.includes(source)) {
+                                        this.world[targetSubdir].items.push(source);
+                                        return `Moved ${source} to ${targetDir}/${targetSubdir}`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Default error message for path-based moves
+                    return `\u001b[31mError: Cannot move files between directories using paths. You need to:\n1. Navigate to the source directory with 'cd'\n2. Move the file to the destination directory\n\nExample:\ncd downloads\ncd archive\nmv file.txt relics\u001b[0m`;
+                }
+                
                 // Additional check for source file (should not be triggered due to our earlier check, but keeping for safety)
                 if (!this.world[this.current_location].items.includes(source)) {
                     return `\u001b[31mError: Cannot move '${source}': File does not exist.\u001b[0m`;
@@ -1288,12 +1411,28 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                     
-                    // Special case for cross-directory paths
+                    // This section should no longer be reached due to our earlier changes,
+                    // but keeping it as a fallback error handler for compatibility
                     if (destination.includes('/') || source.includes('/')) {
-                        // Check if this is a common path pattern like "home/directory/file"
-                        // or "projects/hidden_vault/treasure.json"
-                        const invalidPaths = ["home/projects", "projects/hidden_vault", "downloads/archive"];
+                        // Extra support for moving normal files with paths, similar to treasure.json
+                        // This block will only run for normal files with paths that weren't caught earlier
                         
+                        // Check if we're moving to a specific subdirectory
+                        if (destination.startsWith('/') || destination.includes('/')) {
+                            // For paths that match directory structures like /downloads/archive/relics
+                            const targetParts = destination.replace(/^\/+/, '').split('/');
+                            if (targetParts.length >= 2) {
+                                const targetDir = targetParts[0];
+                                
+                                // Only show the hint if there's a valid structure
+                                if (targetDir in this.world) {
+                                    return `\u001b[31mError: Cannot move files between directories using paths. You need to:\n1. Navigate to the source directory with 'cd'\n2. Move the file to the destination directory\n\nExample:\ncd downloads\ncd archive\nmv file.txt relics\u001b[0m`;
+                                }
+                            }
+                        }
+                        
+                        // Check if this is a common path pattern like "home/directory/file"
+                        const invalidPaths = ["home/projects", "projects/hidden_vault", "downloads/archive"];
                         for (const invalidPath of invalidPaths) {
                             if (source.includes(invalidPath) || destination.includes(invalidPath)) {
                                 return `\u001b[31mError: Cannot move files between directories using paths. You need to:\n1. Navigate to the source directory with 'cd'\n2. Move the file to the destination directory\n\nExample:\ncd ${invalidPath.split('/')[0]}\ncd ${invalidPath.split('/')[1]}\nmv ${source.split('/').pop()} ${destination.split('/').pop()}\u001b[0m`;
