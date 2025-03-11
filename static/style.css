@@ -221,6 +221,7 @@ body {
 
 .error {
     color: var(--terminal-red);
+    font-weight: bold;
 }
 
 .success {
