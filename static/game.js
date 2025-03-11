@@ -779,12 +779,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (data.exits.includes(this.current_location)) {
                             this.current_location = parentDir;
                             foundParent = true;
-                            return `Changed directory to ${parentDir}`;
+                            break;
                         }
                     }
                     if (!foundParent) {
                         return "\u001b[31mError: Already at the root directory; you cannot go any higher.\u001b[0m";
                     }
+                    return `Changed directory to ${this.current_location}`;
                 }
                 
                 // Handle cd ~ (return to home)
