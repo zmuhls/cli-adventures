@@ -10,12 +10,38 @@
 <body>
     <div class="container">
         <div class="terminal-window">
-            <div class="terminal-header">
-                <div class="terminal-buttons">
-                    <div class="terminal-button red"></div>
-                    <div class="terminal-button yellow"></div>
-                    <div class="terminal-button green"></div>
+            <div class="browser-ui">
+                <div class="tab-bar">
+                    <div class="terminal-buttons">
+                        <div class="terminal-button red"></div>
+                        <div class="terminal-button yellow"></div>
+                        <div class="terminal-button green"></div>
+                    </div>
+                    <div class="browser-tabs">
+                        <div class="browser-tab">Login</div>
+                        <div class="browser-tab">The E</div>
+                        <div class="browser-tab">PineT</div>
+                        <div class="browser-tab">Chine</div>
+                        <div class="browser-tab">A Brie</div>
+                        <div class="browser-tab active">CLI Adv X</div>
+                        <div class="browser-tab-next">›</div>
+                        <div class="browser-tab-add">+</div>
+                    </div>
+                    <div class="browser-controls">
+                        <div class="fullscreen-button" id="desktop-fullscreen">⛶</div>
+                    </div>
                 </div>
+                <div class="address-bar">
+                    <div class="nav-buttons">
+                        <span class="nav-button">‹</span>
+                        <span class="nav-button">›</span>
+                        <span class="nav-button">↓</span>
+                    </div>
+                    <div class="address-field">file:///Users/zacharymuhlbauer</div>
+                    <div class="bookmark-button">★</div>
+                </div>
+            </div>
+            <div class="terminal-header">
                 <div class="terminal-title">CLI Adventures [BETA]</div>
             </div>
             <div class="terminal-body">
@@ -30,13 +56,15 @@
  ╚═════╝╚══════╝╚═╝      ╚═╝  ╚═╝╚═════╝   ╚═══╝  ╚══════╝╚═╝  ╚═══╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚══════╝╚══════╝
                         </pre>
                         <pre class="mobile-banner">
+<span class="cli-ascii">
   ______   __       ____ 
  /      \ |  |     |_ _ |
 |  ,----' |  |       | | 
 |  |      |  |       | | 
 |  `----. |  `----. _| |_
  \______| |_______||_____|
-  Adventures v1.0
+</span>
+<span class="cli-version">Adventures v1.0</span>
                         </pre>
                         <p>Welcome to CLI Adventures - Learn terminal commands through interactive exploration! You're in your home directory. Type <code>help</code> to see available commands.</p>
                     </div>
@@ -45,6 +73,8 @@
                     <span class="prompt">~$</span>
                     <input type="text" id="commandInput" autofocus>
                 </div>
+                <div class="terminal-separator"></div>
+                <div id="cyclingAlert" class="cycling-alert">Command Challenge: Type 'help' to see available commands</div>
             </div>
         </div>
         
@@ -53,42 +83,48 @@
                 <h3>Current Challenge</h3>
                 <div id="current-challenge">List the contents of your home directory</div>
                 <div id="challenge-hint" class="hint">
-                    <span class="hint-toggle">Instructions</span>
-                    <span class="hint-text">Just type 'ls' and press Enter</span>
+                    <div class="hint-header">
+                        <span class="hint-toggle">Instructions</span>
+                    </div>
+                    <div class="hint-text">Just type 'ls' and press Enter</div>
                 </div>
             </div>
             <div class="sidebar-section">
-                <h3>Command Reference</h3>
-                <ul class="command-list">
-                    <li><code>ls</code> - List directory contents</li>
-                    <li><code>cd [dir]</code> - Change directory</li>
-                    <li><code>cd ..</code> - Go to parent directory</li>
-                    <li><code>cd ~</code> - Go to home directory</li>
-                    <li><code>cat [file]</code> - View file contents</li>
-                    <li><code>pwd</code> - Print working directory</li>
-                    <li><code>mkdir [dir]</code> - Create directory</li>
-                    <li><code>touch [file]</code> - Create empty file</li>
-                    <li><code>rm [file]</code> - Remove file</li>
-                    <li><code>mv [src] [dst]</code> - Move/rename file</li>
-                    <li><code>cp [src] [dst]</code> - Copy file</li>
-                    <li><code>unzip [file.zip]</code> - Extract zip file</li>
-                    <li><code>clear</code> - Clear the terminal</li>
-                    <li><code>reset</code> - Reset the game</li>
-                    <li><code>help</code> - Show help</li>
-                </ul>
+                <h3 class="accordion-toggle">Command Reference</h3>
+                <div class="accordion-content">
+                    <ul class="command-list">
+                        <li><code>ls</code> - List directory contents</li>
+                        <li><code>cd [dir]</code> - Change directory</li>
+                        <li><code>cd ..</code> - Go to parent directory</li>
+                        <li><code>cd ~</code> - Go to home directory</li>
+                        <li><code>cat [file]</code> - View file contents</li>
+                        <li><code>pwd</code> - Print working directory</li>
+                        <li><code>mkdir [dir]</code> - Create directory</li>
+                        <li><code>touch [file]</code> - Create empty file</li>
+                        <li><code>rm [file]</code> - Remove file</li>
+                        <li><code>mv [src] [dst]</code> - Move/rename file</li>
+                        <li><code>cp [src] [dst]</code> - Copy file</li>
+                        <li><code>unzip [file.zip]</code> - Extract zip file</li>
+                        <li><code>clear</code> - Clear the terminal</li>
+                        <li><code>reset</code> - Reset the game</li>
+                        <li><code>help</code> - Show help</li>
+                    </ul>
+                </div>
             </div>
             
             <div class="sidebar-section">
-                <h3>Terminal Tips</h3>
-                <ul class="tips-list">
-                    <li>Use ↑/↓ arrow keys to navigate command history</li>
-                    <li>Text in the terminal can be selected and copied</li>
-                    <li>Complete each challenge to unlock the next one</li>
-                    <li>Try creating, moving, and deleting your own files</li>
-                    <li>The blue text indicates directories you can navigate to</li>
-                    <li>Read mission.txt file to start your treasure hunt</li>
-                    <li>Use reset command to restart the game at any time</li>
-                </ul>
+                <h3 class="accordion-toggle">Terminal Tips</h3>
+                <div class="accordion-content">
+                    <ul class="tips-list">
+                        <li>Use ↑/↓ arrow keys to navigate command history</li>
+                        <li>Text in the terminal can be selected and copied</li>
+                        <li>Complete each challenge to unlock the next one</li>
+                        <li>Try creating, moving, and deleting your own files</li>
+                        <li>The purple text indicates directories you can navigate to</li>
+                        <li>Read mission.txt file to start your treasure hunt</li>
+                        <li>Use reset command to restart the game at any time</li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>

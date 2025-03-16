@@ -1,3 +1,100 @@
+// Global fullscreen state
+let isFullscreen = false;
+
+// Function to toggle fullscreen mode
+function toggleFullscreen(element) {
+    isFullscreen = !isFullscreen;
+    
+    if (isFullscreen) {
+        // Try to use browser's fullscreen API first
+        try {
+            // Different browsers have different fullscreen methods
+            if (element.requestFullscreen) {
+                element.requestFullscreen();
+            } else if (element.webkitRequestFullscreen) { /* Safari */
+                element.webkitRequestFullscreen();
+            } else if (element.msRequestFullscreen) { /* IE11 */
+                element.msRequestFullscreen();
+            } else {
+                // If browser doesn't support fullscreen API, use our custom implementation
+                useCustomFullscreen(true);
+            }
+            
+            // Update button even if using browser API
+            const fullscreenButton = element.querySelector('.fullscreen-button');
+            if (fullscreenButton) {
+                fullscreenButton.textContent = '⤢'; // Exit fullscreen icon
+            }
+        } catch (e) {
+            // Fallback to our custom implementation if browser API fails
+            console.log("Browser fullscreen API failed, using custom implementation");
+            useCustomFullscreen(true);
+        }
+    } else {
+        // Try to exit browser's fullscreen
+        try {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) { /* Safari */
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) { /* IE11 */
+                document.msExitFullscreen();
+            } else {
+                // If browser doesn't support fullscreen API, use our custom implementation
+                useCustomFullscreen(false);
+            }
+            
+            // Update button even if using browser API
+            const fullscreenButton = element.querySelector('.fullscreen-button');
+            if (fullscreenButton) {
+                fullscreenButton.textContent = '⛶'; // Fullscreen icon
+            }
+        } catch (e) {
+            // Fallback to our custom implementation
+            console.log("Browser exit fullscreen API failed, using custom implementation");
+            useCustomFullscreen(false);
+        }
+    }
+    
+    // Focus the command input after toggling
+    setTimeout(() => {
+        document.getElementById('commandInput').focus();
+    }, 100);
+}
+
+// Custom fullscreen implementation as a fallback
+function useCustomFullscreen(enter) {
+    const terminal = document.querySelector('.terminal-window');
+    if (enter) {
+        // Save current position before going fullscreen
+        terminal.dataset.originalPosition = terminal.style.position;
+        terminal.dataset.originalTop = terminal.style.top;
+        terminal.dataset.originalLeft = terminal.style.left;
+        terminal.dataset.originalWidth = terminal.style.width;
+        terminal.dataset.originalHeight = terminal.style.height;
+        
+        // Set fullscreen styles
+        terminal.style.position = 'fixed';
+        terminal.style.top = '0';
+        terminal.style.left = '0';
+        terminal.style.width = '100vw';
+        terminal.style.height = '100vh';
+        terminal.style.maxHeight = '100vh';
+        terminal.style.zIndex = '9999';
+        terminal.style.borderRadius = '0';
+    } else {
+        // Restore original position
+        terminal.style.position = terminal.dataset.originalPosition || 'absolute';
+        terminal.style.top = terminal.dataset.originalTop || '5%';
+        terminal.style.left = terminal.dataset.originalLeft || '5%';
+        terminal.style.width = terminal.dataset.originalWidth || '65%';
+        terminal.style.height = terminal.dataset.originalHeight || '80%';
+        terminal.style.maxHeight = '90vh';
+        terminal.style.zIndex = '10';
+        terminal.style.borderRadius = '6px';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const outputElement = document.getElementById('output');
     const commandInput = document.getElementById('commandInput');
@@ -7,13 +104,50 @@ document.addEventListener('DOMContentLoaded', () => {
     const hintText = document.querySelector('.hint-text');
     const terminalWindow = document.querySelector('.terminal-window');
     const terminalHeader = document.querySelector('.terminal-header');
+    const cyclingAlert = document.getElementById('cyclingAlert');
     
     let commandHistory = [];
     let historyIndex = -1;
     let currentLocation = 'home';
     
+    // Setup accordion functionality
+    const accordionToggles = document.querySelectorAll('.accordion-toggle');
+    accordionToggles.forEach(toggle => {
+        toggle.addEventListener('click', function() {
+            this.classList.toggle('active');
+            const content = this.nextElementSibling;
+            if (content.classList.contains('accordion-content')) {
+                content.classList.toggle('hidden');
+            }
+        });
+    });
+    
+    // Initialize cycling alert
+    const alertMessages = [
+        "Command Challenge: Type 'help' to see available commands",
+        "Hint: Use arrow keys to navigate command history",
+        "Pro Tip: The purple text indicates directories",
+        "Don't forget to read mission.txt to start your adventure",
+        "Try 'cd' to change directories and explore"
+    ];
+    let currentAlertIndex = 0;
+    
+    // Function to update the cycling alert
+    function updateCyclingAlert() {
+        cyclingAlert.textContent = alertMessages[currentAlertIndex];
+        cyclingAlert.style.backgroundColor = currentAlertIndex % 2 === 0 ? 
+            'var(--terminal-green)' : 'var(--terminal-blue)';
+        currentAlertIndex = (currentAlertIndex + 1) % alertMessages.length;
+    }
+    
+    // Set up cycling alert interval
+    setInterval(updateCyclingAlert, 5000);
+    
     // Always show hints on page load
-    hintText.style.display = 'block';
+    if (hintText) {
+        hintText.style.display = 'block';
+        hintText.classList.remove('hidden');
+    }
     
     // Game state
     const game = new CLIGame();
@@ -23,6 +157,27 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Initialize command input focus
     commandInput.focus();
+    
+    // Handle fullscreen buttons (both desktop and mobile)
+    const desktopFullscreenBtn = document.getElementById('desktop-fullscreen');
+    const mobileFullscreenBtn = document.getElementById('mobile-fullscreen');
+    
+    if (desktopFullscreenBtn) {
+        desktopFullscreenBtn.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent triggering drag
+            toggleFullscreen(terminalWindow);
+        });
+    }
+    
+    if (mobileFullscreenBtn) {
+        mobileFullscreenBtn.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent triggering drag
+            toggleFullscreen(terminalWindow);
+        });
+        
+        // Add numbering indicator for mobile fullscreen button
+        mobileFullscreenBtn.setAttribute('data-number', '7');
+    }
     
     // Auto ls function removed to ensure proper ls behavior
     
@@ -57,11 +212,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // Toggle hint visibility - but ensure it's always visible on mobile
-    hintToggle.addEventListener('click', () => {
-        // Do nothing - hints are now always visible
-        // This ensures instructions are always available
-    });
+    // Set up hint accordion
+    const hintHeader = document.querySelector('.hint-header');
+    const accordionToggleInHint = document.querySelector('.hint-header .accordion-toggle');
+    if (hintHeader && accordionToggleInHint) {
+        accordionToggleInHint.addEventListener('click', () => {
+            accordionToggleInHint.classList.toggle('active');
+            const content = hintHeader.nextElementSibling;
+            if (content) {
+                content.classList.toggle('hidden');
+            }
+        });
+    }
     
     // Handle command execution
     commandInput.addEventListener('keydown', (e) => {
@@ -143,8 +305,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // Update challenge and hint
-        currentChallengeElement.textContent = data.challenge;
-        hintText.textContent = data.challenge_hint || 'No hint available for this challenge.';
+        if (currentChallengeElement) {
+            currentChallengeElement.textContent = data.challenge;
+        }
+        if (hintText) {
+            hintText.textContent = data.challenge_hint || 'No hint available for this challenge.';
+            // Ensure hint is visible
+            hintText.style.display = 'block';
+            hintText.classList.remove('hidden');
+        }
+        
+        // Update cycling alert with the current challenge
+        if (data.challenge) {
+            alertMessages[0] = "Current Challenge: " + data.challenge;
+            cyclingAlert.textContent = alertMessages[0];
+        }
         
         // Auto-scroll to bottom
         outputElement.scrollTop = outputElement.scrollHeight;
@@ -213,9 +388,40 @@ document.addEventListener('DOMContentLoaded', () => {
         const mobileMediaQuery = window.matchMedia("(max-width: 768px)");
         let isMobile = mobileMediaQuery.matches;
         
+        // Using global isFullscreen variable for fullscreen support
+        
         // Set up drag triggers on the handle or the entire element
         const dragHandle = handle || element;
         updateDragCursor();
+        
+        // Create fullscreen button for mobile
+        if (isMobile) {
+            const fullscreenButton = document.createElement('div');
+            fullscreenButton.className = 'fullscreen-button';
+            fullscreenButton.textContent = '⛶'; // Fullscreen icon
+            fullscreenButton.title = 'Toggle fullscreen';
+            fullscreenButton.style.position = 'absolute';
+            fullscreenButton.style.right = '10px';
+            fullscreenButton.style.top = '10px';
+            fullscreenButton.style.zIndex = '1000';
+            fullscreenButton.style.fontSize = '20px';
+            fullscreenButton.style.color = 'white';
+            fullscreenButton.style.cursor = 'pointer';
+            fullscreenButton.style.padding = '5px';
+            fullscreenButton.style.opacity = '0.8';
+            
+            // Add fullscreen button to terminal header
+            const header = element.querySelector('.terminal-header');
+            if (header) {
+                header.appendChild(fullscreenButton);
+            }
+            
+            // Fullscreen toggle function
+            fullscreenButton.addEventListener('click', function(e) {
+                e.stopPropagation(); // Prevent triggering drag
+                toggleFullscreen(element);
+            });
+        }
         
         // Mouse events
         dragHandle.addEventListener('mousedown', startDrag);
@@ -225,6 +431,12 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Resize handler to adapt to viewport changes
         window.addEventListener('resize', handleResize);
+        
+        // Listen for fullscreen change events
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+        document.addEventListener('MSFullscreenChange', handleFullscreenChange);
         
         // Expose hint text by default on mobile
         if (isMobile || isNarrowViewport) {
@@ -283,11 +495,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const hintText = document.querySelector('.hint-text');
             if ((isMobile || isNarrowViewport) && hintText) {
                 hintText.style.display = 'block';
+                hintText.classList.remove('hidden');
             }
             
             // Show welcome instructions initially, regardless of viewport
             // This ensures mobile users see instructions without needing to toggle
-            document.querySelector('.hint-text').style.display = 'block';
+            const welcomeInstructions = document.querySelector('.hint-text');
+            if (welcomeInstructions) {
+                welcomeInstructions.style.display = 'block';
+                welcomeInstructions.classList.remove('hidden');
+            }
             
             // If switching between mobile and desktop modes, reset positioning
             if (wasMobile !== isMobile || wasNarrowViewport !== isNarrowViewport) {
@@ -327,6 +544,30 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             });
+        }
+        
+        // Handle fullscreen change events
+        function handleFullscreenChange() {
+            // Check if we're now in fullscreen mode
+            const isDocFullscreen = document.fullscreenElement || 
+                document.webkitFullscreenElement || 
+                document.mozFullScreenElement || 
+                document.msFullscreenElement;
+            
+            // Update fullscreen button appearance based on state
+            const fullscreenButtons = document.querySelectorAll('.fullscreen-button');
+            fullscreenButtons.forEach(btn => {
+                btn.textContent = isDocFullscreen ? '⤢' : '⛶';
+            });
+            
+            // Update our tracking if browser fullscreen was toggled externally
+            if (!isDocFullscreen && isFullscreen) {
+                // Our state says fullscreen but browser doesn't - update global state
+                isFullscreen = false;
+            } else if (isDocFullscreen && !isFullscreen) {
+                // Browser says fullscreen but our state doesn't - update global state
+                isFullscreen = true;
+            }
         }
         
         // Keep element within viewport bounds
@@ -487,6 +728,137 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Refocus the command input
             document.getElementById('commandInput').focus();
+        }
+        
+        // Function to toggle fullscreen mode
+        function toggleFullscreen(element) {
+            isFullscreen = !isFullscreen;
+            
+            if (isFullscreen) {
+                // Try to use browser's fullscreen API first
+                try {
+                    // Different browsers have different fullscreen methods
+                    if (element.requestFullscreen) {
+                        element.requestFullscreen();
+                    } else if (element.webkitRequestFullscreen) { /* Safari */
+                        element.webkitRequestFullscreen();
+                    } else if (element.msRequestFullscreen) { /* IE11 */
+                        element.msRequestFullscreen();
+                    } else {
+                        // If browser doesn't support fullscreen API, use our custom implementation
+                        useCustomFullscreen(true);
+                    }
+                    
+                    // Update button even if using browser API
+                    const fullscreenButton = element.querySelector('.fullscreen-button');
+                    if (fullscreenButton) {
+                        fullscreenButton.textContent = '⤢'; // Exit fullscreen icon
+                    }
+                } catch (e) {
+                    // Fallback to our custom implementation if browser API fails
+                    console.log("Browser fullscreen API failed, using custom implementation");
+                    useCustomFullscreen(true);
+                }
+            } else {
+                // Try to exit browser's fullscreen
+                try {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) { /* Safari */
+                        document.webkitExitFullscreen();
+                    } else if (document.msExitFullscreen) { /* IE11 */
+                        document.msExitFullscreen();
+                    } else {
+                        // If browser doesn't support fullscreen API, use our custom implementation
+                        useCustomFullscreen(false);
+                    }
+                    
+                    // Update button even if using browser API
+                    const fullscreenButton = element.querySelector('.fullscreen-button');
+                    if (fullscreenButton) {
+                        fullscreenButton.textContent = '⛶'; // Fullscreen icon
+                    }
+                } catch (e) {
+                    // Fallback to our custom implementation
+                    console.log("Browser exit fullscreen API failed, using custom implementation");
+                    useCustomFullscreen(false);
+                }
+            }
+            
+            // Focus the command input after toggling
+            setTimeout(() => {
+                document.getElementById('commandInput').focus();
+            }, 100);
+        }
+        
+        // Custom fullscreen implementation as fallback
+        function useCustomFullscreen(enterFullscreen) {
+            if (enterFullscreen) {
+                // Store original values for restoration later
+                element.dataset.originalPosition = element.style.position;
+                element.dataset.originalTop = element.style.top;
+                element.dataset.originalLeft = element.style.left;
+                element.dataset.originalWidth = element.style.width;
+                element.dataset.originalHeight = element.style.height;
+                element.dataset.originalZIndex = element.style.zIndex;
+                
+                // Apply fullscreen styles
+                element.style.position = 'fixed';
+                element.style.top = '0';
+                element.style.left = '0';
+                element.style.width = '100%';
+                element.style.height = '100%';
+                element.style.maxHeight = '100%';
+                element.style.maxWidth = '100%';
+                element.style.borderRadius = '0';
+                element.style.zIndex = '2000';
+                
+                // Update button icon
+                const fullscreenButton = element.querySelector('.fullscreen-button');
+                if (fullscreenButton) {
+                    fullscreenButton.textContent = '⤢'; // Exit fullscreen icon
+                }
+                
+                // Hide sidebar when in fullscreen on mobile
+                const sidebar = document.querySelector('.sidebar');
+                if (sidebar) {
+                    sidebar.style.display = 'none';
+                }
+                
+                // Enlarge terminal body
+                const terminalBody = element.querySelector('.terminal-body');
+                if (terminalBody) {
+                    terminalBody.style.height = 'calc(100% - 40px)'; // Account for header height
+                }
+            } else {
+                // Restore original values
+                element.style.position = element.dataset.originalPosition || 'relative';
+                element.style.top = element.dataset.originalTop || '';
+                element.style.left = element.dataset.originalLeft || '';
+                element.style.width = element.dataset.originalWidth || '90%';
+                element.style.height = element.dataset.originalHeight || 'auto';
+                element.style.maxHeight = '60vh';
+                element.style.borderRadius = '6px';
+                element.style.zIndex = element.dataset.originalZIndex || '50';
+                
+                // Update button icon
+                const fullscreenButton = element.querySelector('.fullscreen-button');
+                if (fullscreenButton) {
+                    fullscreenButton.textContent = '⛶'; // Fullscreen icon
+                }
+                
+                // Show sidebar again
+                const sidebar = document.querySelector('.sidebar');
+                if (sidebar) {
+                    sidebar.style.display = 'block';
+                }
+                
+                // Reset terminal body
+                const terminalBody = element.querySelector('.terminal-body');
+                if (terminalBody) {
+                    terminalBody.style.height = '';
+                }
+            }
         }
     }
 
@@ -1254,7 +1626,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         return `Moved treasure.json to ${destination}`;
                     }
                     // Check if archive and relics exist for mission completion
-                    else if ("archive" in this.world && this.world["archive"].exits.includes("relics")) {
+                    else if ("archive" in this.world && this.world["archive"].exits.includes("relics") && "relics" in this.world) {
                         // Remove from hidden_vault
                         const index = this.world["hidden_vault"].items.indexOf("treasure.json");
                         this.world["hidden_vault"].items.splice(index, 1);
@@ -1354,7 +1726,22 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                         
                         // For other files and directories, handle parent directory move
-                        return `\u001b[31mError: For security reasons, moving to parent directory is only supported for the special treasure.json file.\u001b[0m`;
+                        if (source !== "treasure.json") {
+                            return `\u001b[31mError: For security reasons, moving to parent directory is only supported for the special treasure.json file.\u001b[0m`;
+                        }
+                        
+                        // Allow moving treasure.json to parent directory from any location, not just hidden_vault
+                        const index = this.world[this.current_location].items.indexOf("treasure.json");
+                        if (index > -1) {
+                            this.world[this.current_location].items.splice(index, 1);
+                            
+                            // Add to parent directory
+                            if (!this.world[parentDir].items.includes("treasure.json")) {
+                                this.world[parentDir].items.push("treasure.json");
+                            }
+                            
+                            return `Moved ${source} to ${parentDir}`;
+                        }
                     }
                     
                     // Parse the path components for other paths
@@ -1396,8 +1783,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 this.world["hidden_vault"].items.splice(index, 1);
                             }
                             
-                            // Add to relics directory
-                            if ("relics" in this.world && !this.world["relics"].items.includes("treasure.json")) {
+                            // Add to relics directory - properly check if relics exists
+                            if ("archive" in this.world && this.world["archive"].exits.includes("relics") && "relics" in this.world && !this.world["relics"].items.includes("treasure.json")) {
                                 this.world["relics"].items.push("treasure.json");
                                 this.mission_complete = true;
                                 return "\u001b[32m🎉 MISSION ACCOMPLISHED! 🎉\u001b[0m\nYou've successfully returned the treasure to its rightful place in archive/relics!";
@@ -1406,8 +1793,23 @@ document.addEventListener('DOMContentLoaded', () => {
                                 this.world["archive"].items.push("treasure.json");
                                 return `Moved treasure.json to archive. Now create the relics directory and move it there to complete your mission.`;
                             }
+                        } else if (this.world[this.current_location].items.includes("treasure.json")) {
+                            // Allow moving treasure.json from any location to archive/relics
+                            const index = this.world[this.current_location].items.indexOf("treasure.json");
+                            if (index > -1) {
+                                this.world[this.current_location].items.splice(index, 1);
+                                
+                                if ("relics" in this.world && this.world["archive"].exits.includes("relics")) {
+                                    this.world["relics"].items.push("treasure.json");
+                                    this.mission_complete = true;
+                                    return "\u001b[32m🎉 MISSION ACCOMPLISHED! 🎉\u001b[0m\nYou've successfully returned the treasure to its rightful place in archive/relics!";
+                                } else {
+                                    this.world["archive"].items.push("treasure.json");
+                                    return `Moved treasure.json to archive. Now create the relics directory and move it there to complete your mission.`;
+                                }
+                            }
                         } else {
-                            return `\u001b[31mError: The treasure.json file must be moved from the hidden_vault directory.\u001b[0m`;
+                            return `\u001b[31mError: The treasure.json file is not in the current directory.\u001b[0m`;
                         }
                     }
                     
