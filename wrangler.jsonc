@@ -1,0 +1,9 @@
+{
+  "name": "cli-adventures",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-03-30",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  }
+}

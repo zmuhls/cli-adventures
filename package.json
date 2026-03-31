@@ -1,0 +1,17 @@
+{
+  "name": "cli-adventures",
+  "private": true,
+  "scripts": {
+    "build": "rm -rf public && mkdir -p public && cp index.html public/ && cp -r static public/",
+    "check": "tsc --noEmit && npm run build",
+    "dev": "npm run build && wrangler dev"
+  },
+  "dependencies": {
+    "hono": "^4.7.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250327.0",
+    "typescript": "^5.7.0",
+    "wrangler": "^4.14.0"
+  }
+}
