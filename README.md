@@ -8,12 +8,21 @@ CLI Adventures is an educational game that helps users learn terminal commands t
 
 ## Features
 
-- Interactive terminal simulator with vintage aesthetic
-- Step-by-step challenges to learn core CLI commands
-- Virtual file system for exploration
-- Command history and navigation (arrow keys)
-- Responsive design for desktop and mobile
-- Hint system for beginners
+- Terminal simulator inside a browser-window frame whose address bar follows your current directory
+- Ten step-by-step challenges with a progress bar, hints and a full challenge list
+- Virtual file system for exploration, with real-looking paths (`~/projects/hidden_vault`, `pwd` → `/home/fsociety/...`)
+- Command history (↑/↓), Tab completion and Ctrl+L to clear
+- Command reference whose entries drop a command at the prompt, handy on phones
+- Expand button that lets the terminal fill the screen (Esc restores it)
+- Layout that fits one screen on desktop and stacks challenge → terminal → reference on phones
+
+## Accessibility
+
+- Terminal output is a live log, so screen readers announce results and completed challenges
+- Every control is a real button, link or disclosure with a visible focus ring; a skip link jumps to the prompt
+- Tab completes names but never traps focus: on an empty prompt it moves on as usual
+- Text meets WCAG AA contrast; directories are marked with a trailing `/`, not by colour alone
+- Respects reduced motion and Windows high-contrast (forced colours)
 
 ## Deployment Options
 
@@ -33,14 +42,6 @@ This version is configured for GitHub Pages deployment:
 ### Static Web Server
 
 Just upload all files to your web server - no server-side processing required.
-
-### Flask App (Python)
-
-For additional features or server-side processing:
-
-1. Install the required packages: `pip install -r requirements.txt`
-2. Run the Flask app: `python app.py`
-3. Access at http://localhost:5000
 
 ## Commands Supported
 
@@ -67,9 +68,9 @@ The game includes several challenges designed to progressively teach CLI concept
 
 ## Technologies Used
 
-- Frontend: HTML, CSS, JavaScript
-- Backend: Pure JavaScript (GitHub Pages version) or Python with Flask (optional)
-- Styling: Custom CSS with terminal aesthetics
+- Frontend: HTML, CSS, JavaScript (`static/engine.js` is the game, `static/game.js` drives the page)
+- Hosting: Cloudflare Worker serving static assets
+- Tests: `npm test` plays the mission through the engine with Node's test runner
 
 ## License
 
