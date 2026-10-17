@@ -1,20 +1,14 @@
-import { Hono } from "hono";
-
-type Bindings = {
-  ASSETS: Fetcher;
-  DB: D1Database;
-  FILES: R2Bucket;
-  CACHE: KVNamespace;
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url);
+    if (!['GET', 'HEAD'].includes(request.method)) return new Response('Method not allowed', {status:405, headers:{allow:'GET, HEAD'}});
+    if (url.pathname === '/health' || url.pathname === '/api/health') {
+      return Response.json({ok:true, status:'ok', project:'cli-adventures', release:env.RELEASE}, {headers:{'cache-control':'no-store'}});
+    }
+    const response = await env.ASSETS.fetch(request);
+    const headers = new Headers(response.headers);
+    headers.set('x-content-type-options', 'nosniff');
+    headers.set('referrer-policy', 'strict-origin-when-cross-origin');
+    return new Response(response.body, {status:response.status, statusText:response.statusText, headers});
+  },
 };
-
-const app = new Hono<{ Bindings: Bindings }>();
-
-app.get("/api/health", (c) => {
-  return c.json({ status: "ok", project: "cli-adventures" });
-});
-
-app.all("*", async (c) => {
-  return c.env.ASSETS.fetch(c.req.raw);
-});
-
-export default app;

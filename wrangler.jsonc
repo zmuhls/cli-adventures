@@ -1,9 +1,19 @@
 {
   "name": "cli-adventures",
   "main": "src/index.ts",
-  "compatibility_date": "2025-03-30",
+  "compatibility_date": "2026-10-17",
   "assets": {
     "directory": "./public",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "account_id": "452c33847cf5cb1e46f391fca32fd1b5",
+  "workers_dev": true,
+  "vars": {
+    "RELEASE": "dev"
+  },
+  "observability": {
+    "enabled": true
   }
 }

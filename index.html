@@ -5,10 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CLI Adventures [BETA]</title>
     <link rel="stylesheet" href="static/style.css">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap">
+    <link rel="stylesheet" href="static/suite-navigation.css">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E💻%3C/text%3E%3C/svg%3E" type="image/svg+xml">
 </head>
 <body>
+    <nav class="suite-nav suite-nav-dark" aria-label="CUNY account"><div class="suite-nav-links"><a class="suite-nav-button" href="https://games.ailab-452.workers.dev/">Games</a><a class="suite-nav-button" href="https://tools.ailab.gc.cuny.edu/my-work/">CUNY Login</a></div></nav>
     <div class="container">
         <div class="terminal-window">
             <div class="browser-ui">
@@ -73,7 +74,7 @@
                 </div>
                 <div class="input-line">
                     <span class="prompt">~$</span>
-                    <input type="text" id="commandInput" autofocus>
+                    <input type="text" id="commandInput" aria-label="Terminal command" autocomplete="off" autocapitalize="off" spellcheck="false" autofocus>
                 </div>
                 <div class="terminal-separator"></div>
                 <div id="cyclingAlert" class="cycling-alert">Command Challenge: Type 'help' to see available commands</div>

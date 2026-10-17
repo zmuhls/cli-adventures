@@ -17,7 +17,12 @@ CLI Adventures is an educational game that helps users learn terminal commands t
 
 ## Deployment Options
 
-### GitHub Pages (Current)
+### Cloudflare Worker (Arcade)
+
+The arcade installation is https://cli-adventures.ailab-452.workers.dev/.
+Run `npm ci`, `npm run check`, then `npm run deploy`. The Worker serves the original browser game and exposes `/health` with its source release. Games returns to the shared arcade; CUNY Login opens the existing Lab workspace. Game progress stays in the current browser tab and resets on reload.
+
+### GitHub Pages
 
 This version is configured for GitHub Pages deployment:
 1. Push this code to your GitHub repository

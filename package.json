@@ -4,14 +4,12 @@
   "scripts": {
     "build": "rm -rf public && mkdir -p public && cp index.html public/ && cp -r static public/",
     "check": "tsc --noEmit && npm run build",
-    "dev": "npm run build && wrangler dev"
-  },
-  "dependencies": {
-    "hono": "^4.7.0"
+    "dev": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy --var RELEASE:$(git rev-parse --short HEAD)"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250327.0",
+    "@cloudflare/workers-types": "5.20261016.1",
     "typescript": "^5.7.0",
-    "wrangler": "^4.14.0"
+    "wrangler": "4.151.1"
   }
 }

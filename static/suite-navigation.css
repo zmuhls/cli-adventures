@@ -1,0 +1,30 @@
+/* Shared navigation for the arcade and its hosted games. */
+:is(.suite-nav,.suite-nav-inline){--nav-red:#a44856;--nav-hover:#a448560d}
+.suite-nav{
+  --nav-gutter:max(clamp(12px,2.5vw,40px),calc((100% - 1540px)/2),env(safe-area-inset-right));
+  position:absolute;top:max(16px,env(safe-area-inset-top));right:var(--nav-gutter);left:auto;
+  z-index:50;display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;
+  width:max-content;max-width:calc(100% - 24px);margin:0;padding:0;gap:8px 10px;
+  font:500 1.0625rem/1.5 var(--suite-font,var(--font-ui,Arial,sans-serif));color:#514c47;
+}
+.suite-nav-links{display:flex;align-items:center;gap:10px}
+:is(.suite-nav,.suite-nav-inline) .suite-nav-button{
+  box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;
+  min-width:44px;min-height:46px;margin:0;padding:9px 16px;
+  border:1px solid var(--nav-red);border-radius:2px;background:transparent;color:var(--nav-red);
+  font:500 1.0625rem/1.5 var(--suite-font,var(--font-ui,Arial,sans-serif));letter-spacing:normal;text-transform:none;text-align:center;text-decoration:none;
+  white-space:nowrap;opacity:1;cursor:pointer;transform:none;box-shadow:none;transition:background-color .15s ease;
+}
+:is(.suite-nav,.suite-nav-inline) .suite-nav-button:hover{background:var(--nav-hover);border-color:var(--nav-red);color:var(--nav-red);text-decoration:none;transform:none;box-shadow:none}
+:is(.suite-nav,.suite-nav-inline) .suite-nav-button:focus-visible{outline:2px solid var(--nav-red);outline-offset:3px;box-shadow:none}
+.suite-nav [role=status]{flex-basis:100%;order:3;max-width:32rem;text-align:right;white-space:normal;overflow-wrap:anywhere;font:400 1rem/1.5 var(--suite-font,var(--font-ui,Arial,sans-serif))}
+:is(.suite-nav,.suite-nav-inline).suite-nav-dark{--nav-red:#c57080;--nav-hover:#c5708012;color:#b7b1a5}
+.suite-nav .suite-nav-retry{order:4}
+.suite-nav [hidden],.suite-nav [role=status]:empty{display:none!important}
+@media(max-width:600px){
+  .suite-nav{top:max(12px,env(safe-area-inset-top));gap:8px}
+  .suite-nav-links{gap:8px}
+  :is(.suite-nav,.suite-nav-inline) .suite-nav-button{padding-inline:12px}
+}
+@media(prefers-reduced-motion:reduce){:is(.suite-nav,.suite-nav-inline) .suite-nav-button{transition:none}}
+@media(forced-colors:active){:is(.suite-nav,.suite-nav-inline) .suite-nav-button{border-color:ButtonText;background:ButtonFace;color:ButtonText}:is(.suite-nav,.suite-nav-inline) .suite-nav-button:focus-visible{outline-color:Highlight;box-shadow:none}}

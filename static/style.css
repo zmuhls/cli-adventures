@@ -1,3 +1,7 @@
+@font-face{font-family:'IBM Plex Mono';src:url('./fonts/ibm-plex-mono-latin-400.woff2') format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'IBM Plex Mono';src:url('./fonts/ibm-plex-mono-latin-500.woff2') format('woff2');font-weight:500;font-display:swap}
+@font-face{font-family:Barlow;src:url('./fonts/barlow-500.woff2') format('woff2');font-weight:500;font-display:swap}
+:root{--suite-font:Barlow,Arial,sans-serif}
 /* Base styles */
 :root {
     --terminal-bg: #282a36;
@@ -947,3 +951,7 @@ body {
         padding-top: 10px;
     }
 }
+/* Leave a clear band for the shared arcade navigation. */
+body{padding-top:80px}
+.container{height:calc(100dvh - 112px)}
+@media(max-width:960px){body{height:auto;min-height:100dvh;overflow-y:auto;align-items:flex-start}.container{height:auto;min-height:calc(100dvh - 80px)}}
