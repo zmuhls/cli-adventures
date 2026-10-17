@@ -4,3 +4,4 @@ public/
 .wrangler/
 dist/
 .DS_Store
+.dev.vars

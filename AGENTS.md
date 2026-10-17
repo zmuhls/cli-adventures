@@ -8,22 +8,24 @@ The arcade installation deploys directly to Cloudflare Workers at https://cli-ad
 
 - **Runtime:** Cloudflare Workers fetch handler
 - **Static assets:** `index.html` and `static/` are copied to `public/` at build time
-- **Bindings:** `ASSETS` and `RELEASE`; the game uses an in-memory browser filesystem
+- **Bindings:** `ASSETS`, `RELEASE`, `CAIL_GATEWAY_URL`, `LLM_MODEL` and the `LLM_LIMITER` rate limiter; the optional `CAIL_GATEWAY_API_KEY` secret turns on `/api/llm`. The game itself uses an in-memory browser filesystem saved to localStorage
 - **Deploy:** `npm run check`, then `npm run deploy`; verify `/health` against the source commit
 
 ## Commands
 
 - `npm run dev` — local development at http://localhost:8787
-- `npm test` — engine tests (plays the mission headlessly)
+- `npm test` — engine tests (plays every chapter headlessly) and `/api/llm` tests against a fake gateway
 - `npm run check` — type-check, tests and build validation
 - `npm run build` — copy static assets to `public/`
 
 ## Structure
 
-- `src/index.ts` — Worker entrypoint (static assets and health)
+- `src/index.ts` — Worker entrypoint (static assets, health, `/api/llm`)
+- `src/llm.ts` — Bit's lines and the in-game agent's cloud answers through the CAIL gateway
 - `index.html` — main game page
-- `static/engine.js` — game engine (`CLIGame`: world, commands, challenges)
-- `static/game.js` — page controller (terminal window, sidebar, keyboard handling)
+- `static/engine.js` — game engine (`CLIGame`: virtual filesystem, shell, commands, chapters and challenges)
+- `static/sprite.js` — Bit, the sprite by the prompt (bubbles, hints, jump, confetti)
+- `static/game.js` — page controller (terminal window, sidebar, saves, keyboard handling)
 - `static/style.css` — layout and theme; `static/suite-navigation.css` is shared with the arcade
 - `test/` — engine tests
 - `public/` — build output (gitignored)
@@ -33,3 +35,5 @@ The arcade installation deploys directly to Cloudflare Workers at https://cli-ad
 - Do not use `app.listen(...)` or any long-running server pattern.
 - The Worker exports a fetch handler; production bindings are declared in wrangler.jsonc.
 - Keep the project small and editable.
+- Challenge checks read game state and the commands the player ran, never model output, so the game plays the same with or without `/api/llm`.
+- A new chapter needs `setup` (adds its files), `solve` (its end state, used when a later chapter is started directly) and challenges; add its commands to the `COMMANDS` reference and a walkthrough to `test/engine.test.mjs`.
