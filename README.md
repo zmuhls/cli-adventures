@@ -1,6 +1,6 @@
 # CLI Adventures [BETA]
 
-A browser game that teaches the command line, then uses it to teach how AI agents work. It runs in a simulated terminal, so nothing can break. This is currently in beta - please submit a pull request if you find any bugs or have suggestions for improvements.
+A browser game that teaches the command line, then uses it to teach how AI agents work. Chapter 1 runs on a real Linux inside the browser; the later chapters use a simulated terminal, so nothing can break. This is currently in beta - please submit a pull request if you find any bugs or have suggestions for improvements.
 
 ## Chapters
 
@@ -21,7 +21,7 @@ When the Worker has a gateway key, Bit's lines and the in-game agent's cloud ans
 
 ## Real Linux (beta)
 
-The **Real Linux** button in the window's tab bar swaps the simulator for a real Linux 6.12 with bash, booted inside the tab by the [v86](https://github.com/copy/v86) emulator. Nothing runs on a server. The first start downloads about 11 MB and takes a few seconds; after that, every command, error and output is the real thing. Chapter 1 plays there so far, with challenges checked against the real files; the other chapters stay in the simulator. Click the button again to go back, with your simulator progress where you left it. How the image is built, and its licenses, are in [`vm/README.md`](vm/README.md).
+Chapter 1 plays on a real Linux by default: Linux 6.12 with bash, booted inside the tab by the [v86](https://github.com/copy/v86) emulator. Nothing runs on a server. The first visit downloads about 11 MB and takes a few seconds; after that, every command, error and output is the real thing, and challenges are checked against the real files. When Chapter 1 is done, Chapter 2 picks up in the simulator, which plays the AI agent and its tools. The **Real Linux** button in the window's tab bar switches between the two, and the game remembers a player who chose the simulator. Players whose browser asks to save data, or who are already past Chapter 1, start in the simulator. How the image is built, and its licenses, are in [`vm/README.md`](vm/README.md).
 
 ## Features
 
