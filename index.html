@@ -2,143 +2,141 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CLI Adventures [BETA]</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#121318">
+    <meta name="description" content="Learn terminal commands by tracking down a stolen file in a simulated command line.">
+    <title>CLI Adventures (beta)</title>
+    <link rel="preload" href="static/fonts/ibm-plex-mono-latin-400.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="static/style.css">
     <link rel="stylesheet" href="static/suite-navigation.css">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E💻%3C/text%3E%3C/svg%3E" type="image/svg+xml">
 </head>
 <body>
+    <a class="skip-link" href="#commandInput">Skip to the command prompt</a>
     <nav class="suite-nav suite-nav-dark" aria-label="CUNY account"><div class="suite-nav-links"><a class="suite-nav-button" href="https://games.ailab-452.workers.dev/">Games</a><a class="suite-nav-button" href="https://tools.ailab.gc.cuny.edu/my-work/">CUNY Login</a></div></nav>
-    <div class="container">
-        <div class="terminal-window">
-            <div class="browser-ui">
-                <div class="tab-bar">
-                    <div class="terminal-buttons">
-                        <div class="terminal-button red"></div>
-                        <div class="terminal-button yellow"></div>
-                        <div class="terminal-button green"></div>
-                    </div>
-                    <div class="browser-tabs">
-                        <div class="browser-tab">Login</div>
-                        <div class="browser-tab">The E</div>
-                        <div class="browser-tab">PineT</div>
-                        <div class="browser-tab">Chine</div>
-                        <div class="browser-tab">A Brie</div>
-                        <div class="browser-tab active">CLI Adv X</div>
-                        <div class="browser-tab"><a href="https://github.com/zmuhls/cli-adventures" target="_blank" style="text-decoration: none; color: inherit;">GitHub <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" style="vertical-align: middle;"><path fill="currentColor" d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.729.083-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/></svg></a></div>
-                        <div class="browser-tab-next">›</div>
-                        <div class="browser-tab-add">+</div>
-                    </div>
-                    <div class="browser-controls">
-                        <div class="fullscreen-button" id="desktop-fullscreen">⛶</div>
-                    </div>
+
+    <header class="page-header">
+        <h1>CLI Adventures <span class="badge">Beta</span></h1>
+        <p class="tagline">Learn the command line by tracking down a stolen file.</p>
+    </header>
+
+    <main class="layout">
+        <section class="window" id="terminalWindow" aria-label="Terminal">
+            <div class="tab-bar">
+                <div class="traffic-lights" aria-hidden="true"><span></span><span></span><span></span></div>
+                <div class="tabs">
+                    <span class="tab is-active" aria-hidden="true">
+                        <svg viewBox="0 0 16 16" width="14" height="14"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M2.5 4.5 6 8l-3.5 3.5M8 12h5.5"/></svg>
+                        CLI Adventures
+                    </span>
+                    <a class="tab" href="https://github.com/zmuhls/cli-adventures" target="_blank" rel="noopener">
+                        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.729.083-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/></svg>
+                        GitHub<span class="visually-hidden"> (opens in a new tab)</span>
+                    </a>
                 </div>
-                <div class="address-bar">
-                    <div class="nav-buttons">
-                        <span class="nav-button">‹</span>
-                        <span class="nav-button">›</span>
-                        <span class="nav-button">↓</span>
-                    </div>
-                    <div class="address-field">file:///home/fsociety/terminal</div>
-                    <div class="bookmark-button">★</div>
-                </div>
+                <button class="window-button" id="expandButton" type="button" aria-pressed="false" title="Expand terminal">
+                    <svg class="icon-expand" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M9.5 2.5h4v4M6.5 13.5h-4v-4M13.5 2.5 9 7M2.5 13.5 7 9"/></svg>
+                    <svg class="icon-collapse" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M13.5 6.5h-4v-4M2.5 9.5h4v4M9.5 6.5l4-4M6.5 9.5l-4 4"/></svg>
+                    <span class="visually-hidden">Expand terminal</span>
+                </button>
             </div>
-            <div class="terminal-header">
-                <div class="terminal-title">CLI Adventures [BETA]</div>
+            <div class="address-bar">
+                <span class="nav-arrows" aria-hidden="true">
+                    <svg viewBox="0 0 16 16" width="16" height="16"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M10 3.5 5.5 8l4.5 4.5"/></svg>
+                    <svg viewBox="0 0 16 16" width="16" height="16"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M6 3.5 10.5 8 6 12.5"/></svg>
+                </span>
+                <div class="address" aria-hidden="true"><span class="address-scheme">file://</span><span id="addressPath">/home/fsociety</span></div>
             </div>
-            <div class="terminal-body">
-                <div id="output">
-                    <div class="welcome-message">
-                        <pre class="desktop-banner">
- ██████╗██╗     ██╗       █████╗ ██████╗ ██╗   ██╗███████╗███╗   ██╗████████╗██╗   ██╗██████╗ ███████╗███████╗
+
+            <div class="terminal" id="terminal">
+                <div class="output" id="output" role="log" aria-label="Terminal output" tabindex="0">
+                    <div class="welcome">
+                        <pre class="banner banner-wide" aria-hidden="true"> ██████╗██╗     ██╗       █████╗ ██████╗ ██╗   ██╗███████╗███╗   ██╗████████╗██╗   ██╗██████╗ ███████╗███████╗
 ██╔════╝██║     ██║      ██╔══██╗██╔══██╗██║   ██║██╔════╝████╗  ██║╚══██╔══╝██║   ██║██╔══██╗██╔════╝██╔════╝
 ██║     ██║     ██║█████╗███████║██║  ██║██║   ██║█████╗  ██╔██╗ ██║   ██║   ██║   ██║██████╔╝█████╗  ███████╗
 ██║     ██║     ██║╚════╝██╔══██║██║  ██║╚██╗ ██╔╝██╔══╝  ██║╚██╗██║   ██║   ██║   ██║██╔══██╗██╔══╝  ╚════██║
 ╚██████╗███████╗██║      ██║  ██║██████╔╝ ╚████╔╝ ███████╗██║ ╚████║   ██║   ╚██████╔╝██║  ██║███████╗███████║
- ╚═════╝╚══════╝╚═╝      ╚═╝  ╚═╝╚═════╝   ╚═══╝  ╚══════╝╚═╝  ╚═══╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚══════╝╚══════╝
-                        </pre>
-                        <pre class="mobile-banner">
-<span class="cli-ascii">
-  ______   __       ____ 
- /      \ |  |     |_ _ |
-|  ,----' |  |       | | 
-|  |      |  |       | | 
-|  `----. |  `----. _| |_
- \______| |_______||_____|
-</span>
-<span class="cli-version">Adventures v1.0</span>
-                        </pre>
-                        <p>Welcome to CLI Adventures - Learn terminal commands through interactive exploration! You're in your home directory. Type <code>help</code> to see available commands.</p>
+ ╚═════╝╚══════╝╚═╝      ╚═╝  ╚═╝╚═════╝   ╚═══╝  ╚══════╝╚═╝  ╚═══╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚══════╝╚══════╝</pre>
+                        <pre class="banner banner-narrow" aria-hidden="true"> ██████╗██╗     ██╗
+██╔════╝██║     ██║
+██║     ██║     ██║
+██║     ██║     ██║
+╚██████╗███████╗██║
+ ╚═════╝╚══════╝╚═╝
+<span class="banner-word">adventures</span></pre>
+                        <p>Welcome, agent. You're in your home directory, <code>~</code>. Type <code>help</code> to list commands, or follow the current challenge.</p>
                     </div>
                 </div>
-                <div class="input-line">
-                    <span class="prompt">~$</span>
-                    <input type="text" id="commandInput" aria-label="Terminal command" autocomplete="off" autocapitalize="off" spellcheck="false" autofocus>
-                </div>
-                <div class="terminal-separator"></div>
-                <div id="cyclingAlert" class="cycling-alert">Command Challenge: Type 'help' to see available commands</div>
+                <form class="input-line" id="commandForm" autocomplete="off">
+                    <span class="prompt" aria-hidden="true"><span id="promptPath">~</span> $</span>
+                    <input id="commandInput" type="text" name="command" aria-label="Command" aria-describedby="cwdStatus" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="send">
+                </form>
             </div>
-        </div>
-        
-        <div class="sidebar">
-            <div class="sidebar-section">
-                <h3>Current Challenge</h3>
-                <div id="current-challenge">List the contents of your home directory</div>
-                <div id="challenge-hint" class="hint">
-                    <div class="hint-header">
-                        <span class="hint-toggle">Instructions</span>
-                    </div>
-                    <div class="hint-text">Just type 'ls' and press Enter</div>
-                </div>
+
+            <div class="status-bar">
+                <span class="status-cwd" id="cwdStatus"><span class="visually-hidden">Current directory: </span><span id="cwdPath">~</span></span>
+                <span class="status-challenge" id="statusChallenge" aria-hidden="true">Challenge 1 of 10</span>
+                <span class="status-keys" aria-hidden="true"><kbd>Tab</kbd> complete <kbd>↑</kbd><kbd>↓</kbd> history</span>
             </div>
-            <div class="sidebar-section">
-                <h3 class="accordion-toggle">Command Reference</h3>
-                <div class="accordion-content">
-                    <ul class="command-list">
-                        <li><code>ls</code> - List directory contents</li>
-                        <li><code>cd [dir]</code> - Change directory</li>
-                        <li><code>cd ..</code> - Go to parent directory</li>
-                        <li><code>cd ~</code> - Go to home directory</li>
-                        <li><code>cat [file]</code> - View file contents</li>
-                        <li><code>pwd</code> - Print working directory</li>
-                        <li><code>mkdir [dir]</code> - Create directory</li>
-                        <li><code>touch [file]</code> - Create empty file</li>
-                        <li><code>rm [file]</code> - Remove file</li>
-                        <li><code>mv [src] [dst]</code> - Move/rename file</li>
-                        <li><code>cp [src] [dst]</code> - Copy file</li>
-                        <li><code>unzip [file.zip]</code> - Extract zip file</li>
-                        <li><code>clear</code> - Clear the terminal</li>
-                        <li><code>reset</code> - Reset the game</li>
-                        <li><code>help</code> - Show help</li>
-                    </ul>
-                </div>
+        </section>
+
+        <section class="mission panel" aria-labelledby="missionHeading">
+            <div class="mission-head">
+                <h2 id="missionHeading">Current challenge</h2>
+                <span class="step-count" id="stepCount">1 of 10</span>
             </div>
-            
-            <div class="sidebar-section">
-                <h3 class="accordion-toggle">Terminal Tips</h3>
-                <div class="accordion-content">
-                    <ul class="tips-list">
-                        <li>Use ↑/↓ arrow keys to navigate command history</li>
-                        <li>Text in the terminal can be selected and copied</li>
-                        <li>Complete each challenge to unlock the next one</li>
-                        <li>Try creating, moving, and deleting your own files</li>
-                        <li>The purple text indicates directories you can navigate to</li>
-                        <li>Read mission.txt file to start your treasure hunt</li>
-                        <li>Use reset command to restart the game at any time</li>
-                    </ul>
-                </div>
-            </div>
-            
-            <div class="sidebar-section">
-                <h3 class="accordion-toggle">Project Info</h3>
-                <div class="accordion-content">
-                    <p><a href="https://github.com/zmuhls/cli-adventures" target="_blank">View on GitHub</a></p>
-                </div>
-            </div>
-        </div>
-    </div>
-    
+            <progress id="progressBar" max="10" value="0" aria-label="Challenges completed">0 of 10</progress>
+            <p class="challenge" id="currentChallenge">List the contents of your home directory</p>
+            <details class="hint" open>
+                <summary>Hint</summary>
+                <p id="challengeHint">Just type <code>ls</code> and press Enter</p>
+            </details>
+        </section>
+
+        <aside class="reference panel" aria-labelledby="referenceHeading">
+            <h2 class="visually-hidden" id="referenceHeading">Reference</h2>
+            <details class="ref-group">
+                <summary>All challenges</summary>
+                <ol class="lesson-list" id="lessonList"></ol>
+            </details>
+            <details class="ref-group" open>
+                <summary>Commands</summary>
+                <p class="ref-note">Pick one to place it at the prompt.</p>
+                <ul class="command-list">
+                    <li><button type="button" data-insert="ls"><code>ls</code><span>List what's here</span></button></li>
+                    <li><button type="button" data-insert="cd "><code>cd <var>dir</var></code><span>Go into a directory</span></button></li>
+                    <li><button type="button" data-insert="cd .."><code>cd ..</code><span>Go up one level</span></button></li>
+                    <li><button type="button" data-insert="cd ~"><code>cd ~</code><span>Go home</span></button></li>
+                    <li><button type="button" data-insert="pwd"><code>pwd</code><span>Show where you are</span></button></li>
+                    <li><button type="button" data-insert="cat "><code>cat <var>file</var></code><span>Read a file</span></button></li>
+                    <li><button type="button" data-insert="mkdir "><code>mkdir <var>dir</var></code><span>Make a directory</span></button></li>
+                    <li><button type="button" data-insert="touch "><code>touch <var>file</var></code><span>Make an empty file</span></button></li>
+                    <li><button type="button" data-insert="cp "><code>cp <var>src dst</var></code><span>Copy a file</span></button></li>
+                    <li><button type="button" data-insert="mv "><code>mv <var>src dst</var></code><span>Move or rename</span></button></li>
+                    <li><button type="button" data-insert="rm "><code>rm <var>file</var></code><span>Remove a file</span></button></li>
+                    <li><button type="button" data-insert="unzip "><code>unzip <var>file</var></code><span>Extract a .zip</span></button></li>
+                    <li><button type="button" data-insert="clear"><code>clear</code><span>Clear the screen</span></button></li>
+                    <li><button type="button" data-insert="reset"><code>reset</code><span>Start the game over</span></button></li>
+                    <li><button type="button" data-insert="help"><code>help</code><span>List every command</span></button></li>
+                </ul>
+            </details>
+            <details class="ref-group">
+                <summary>Tips</summary>
+                <ul class="tips-list">
+                    <li>Press <kbd>↑</kbd> and <kbd>↓</kbd> to bring back earlier commands.</li>
+                    <li><kbd>Tab</kbd> finishes command and file names. On an empty prompt it moves focus on, as usual.</li>
+                    <li>Purple names ending in <code>/</code> are directories you can <code>cd</code> into.</li>
+                    <li><code>~</code> is short for your home directory, <code>/home/fsociety</code>.</li>
+                    <li><kbd>Ctrl</kbd> + <kbd>L</kbd> clears the screen. <code>reset</code> starts over.</li>
+                    <li>Expand the terminal with the button in its tab bar; <kbd>Esc</kbd> restores it.</li>
+                </ul>
+            </details>
+            <p class="ref-footer">Beta. Progress lasts until you reload the page. <a href="https://github.com/zmuhls/cli-adventures" target="_blank" rel="noopener">Report a bug or contribute<span class="visually-hidden"> (opens in a new tab)</span></a></p>
+        </aside>
+    </main>
+
+    <script src="static/engine.js"></script>
     <script src="static/game.js"></script>
 </body>
 </html>

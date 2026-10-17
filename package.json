@@ -3,7 +3,8 @@
   "private": true,
   "scripts": {
     "build": "node scripts/build.mjs",
-    "check": "tsc --noEmit && npm run build",
+    "test": "node --test",
+    "check": "tsc --noEmit && npm test && npm run build",
     "dev": "npm run build && wrangler dev",
     "deploy": "npm run build && wrangler deploy --var RELEASE:$(git rev-parse --short HEAD)"
   },

@@ -14,14 +14,18 @@ The arcade installation deploys directly to Cloudflare Workers at https://cli-ad
 ## Commands
 
 - `npm run dev` — local development at http://localhost:8787
-- `npm run check` — type-check and build validation
+- `npm test` — engine tests (plays the mission headlessly)
+- `npm run check` — type-check, tests and build validation
 - `npm run build` — copy static assets to `public/`
 
 ## Structure
 
 - `src/index.ts` — Worker entrypoint (static assets and health)
 - `index.html` — main game page
-- `static/` — CSS, JS game logic
+- `static/engine.js` — game engine (`CLIGame`: world, commands, challenges)
+- `static/game.js` — page controller (terminal window, sidebar, keyboard handling)
+- `static/style.css` — layout and theme; `static/suite-navigation.css` is shared with the arcade
+- `test/` — engine tests
 - `public/` — build output (gitignored)
 
 ## Conventions
