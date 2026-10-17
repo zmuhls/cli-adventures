@@ -955,3 +955,5 @@ body {
 body{padding-top:80px}
 .container{height:calc(100dvh - 112px)}
 @media(max-width:960px){body{height:auto;min-height:100dvh;overflow-y:auto;align-items:flex-start}.container{height:auto;min-height:calc(100dvh - 80px)}}
+
+.welcome-message .desktop-banner{font-size:clamp(6px,.65vw,10px)}
