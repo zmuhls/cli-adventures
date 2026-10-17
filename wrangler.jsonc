@@ -15,9 +15,13 @@
     // Bit and the in-game agent call this OpenAI-compatible gateway. The key is the
     // CAIL_GATEWAY_API_KEY secret (an app sk-cail-* key); without it the game uses scripted lines.
     "CAIL_GATEWAY_URL": "https://tools.ailab.gc.cuny.edu/v1",
-    "LLM_MODEL": "gemma-4-26b-a4b-it"
+    "LLM_MODEL": "gemma-4-26b-a4b-it",
+    // Clef-flash sorts failed commands for Bit (/api/decide). It runs on Workers AI unless
+    // CLEF_URL names a SystemOne server, such as one the lab hosts (key: CLEF_API_KEY secret).
+    "CLEF_MODEL": "@cf/cloudflare/clef-flash"
   },
-  // Per-visitor cap on /api/llm (requests per 60 seconds)
+  "ai": { "binding": "AI" },
+  // Per-visitor cap on /api/llm and /api/decide together (requests per 60 seconds)
   "ratelimits": [
     {
       "name": "LLM_LIMITER",

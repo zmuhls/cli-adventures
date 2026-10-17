@@ -17,7 +17,7 @@ Chapters unlock in order and can be replayed from the sidebar. Progress is saved
 
 Bit sits next to the prompt. It jumps when you complete a challenge, looks worried and explains when a command fails, gives a hint (then a bigger one) when clicked, and throws confetti when a chapter or the whole game is done. It can be switched off in the sidebar, and it stays still when the system asks for reduced motion.
 
-When the Worker has a gateway key, Bit's lines and the in-game agent's cloud answers come from a small language model (Gemma 4 through the CUNY AI Lab gateway). Otherwise both use scripted lines. Challenges never depend on what the model says, so the game plays the same either way. The local model in Chapter 3 is simulated and never makes a network call, which matches what the game tells players.
+When the Worker has a gateway key, Bit's lines and the in-game agent's cloud answers come from a small language model (Gemma 4 through the CUNY AI Lab gateway). Otherwise both use scripted lines. When a command fails in Real Linux, where bash's errors carry no game error code, a decision model (Clef-flash, on Workers AI) sorts the mistake first: a misspelled command, a wrong file name, a file used as a folder, and so on. Bit then says the matching line. It returns a category, never text, and anything it is unsure of counts as "other". Set `CLEF_URL` to a SystemOne server (for example Clef-flash on the lab's own GPU) to keep that traffic off Cloudflare. Challenges never depend on what the model says, so the game plays the same either way. The local model in Chapter 3 is simulated and never makes a network call, which matches what the game tells players.
 
 ## Real Linux (beta)
 

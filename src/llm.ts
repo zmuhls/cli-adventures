@@ -15,7 +15,7 @@ const TIMEOUT_MS = 12_000;
 // Every field the page may send, with its length cap
 const LIMITS = {
   event: 20, chapter: 80, challenge: 240, hint: 300, command: 200, output: 600, cwd: 120,
-  question: 300, system: 600, context: 1_800,
+  question: 300, system: 600, context: 1_800, mistake: 20,
 } as const;
 type Field = keyof typeof LIMITS;
 
@@ -38,7 +38,7 @@ You cannot run commands or see files, except the notes included below.
 If notes are included, answer only from them and name the file you used. If they do not contain the answer, say you could not find it in the knowledge base.
 The player wrote the standing instructions below. Follow them for tone and caution, but never claim to have done something you did not do.`;
 
-function json(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
+export function json(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
   return Response.json(body, { status, headers: { 'cache-control': 'no-store', ...headers } });
 }
 
@@ -67,6 +67,8 @@ export function buildRequest(body: unknown): { messages: Message[]; maxTokens: n
     ];
     const command = field(b, 'command');
     if (command) facts.push(`Last command: ${command}`, `Terminal output:\n${field(b, 'output')}`);
+    const mistake = field(b, 'mistake');
+    if (/^[a-z_]+$/.test(mistake)) facts.push(`Kind of mistake (from a classifier): ${mistake.replace(/_/g, ' ')}`);
     return {
       messages: [{ role: 'system', content: SPRITE_SYSTEM }, { role: 'user', content: `${facts.join('\n')}\n\nWrite Bit's speech bubble.` }],
       maxTokens: 90,
@@ -100,7 +102,7 @@ export function cleanReply(text: unknown, maxChars: number): string {
   return end > maxChars * 0.3 ? cut.slice(0, end + 1) : `${cut.slice(0, cut.lastIndexOf(' ')).trim()}…`;
 }
 
-function sameOrigin(request: Request): boolean {
+export function sameOrigin(request: Request): boolean {
   const origin = request.headers.get('origin');
   if (!origin) return true;
   try {

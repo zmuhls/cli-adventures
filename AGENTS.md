@@ -22,6 +22,7 @@ The arcade installation deploys directly to Cloudflare Workers at https://cli-ad
 
 - `src/index.ts` — Worker entrypoint (static assets, health, `/api/llm`)
 - `src/llm.ts` — Bit's lines and the in-game agent's cloud answers through the CAIL gateway
+- `src/clef.ts` — `/api/decide`: Clef-flash sorts a failed command into one of Bit's mistake kinds (Workers AI binding, or a SystemOne server at `CLEF_URL`)
 - `index.html` — main game page
 - `static/engine.js` — game engine (`CLIGame`: virtual filesystem, shell, commands, chapters and challenges)
 - `static/sprite.js` — Bit, the sprite by the prompt (bubbles, hints, jump, confetti)
@@ -30,7 +31,7 @@ The arcade installation deploys directly to Cloudflare Workers at https://cli-ad
 - `static/realchapters.js` — chapters played on the real terminal (`RealChapters`): setup scripts and checks against real files
 - `static/vm/` — emulator, BIOS, kernel and initrd for the real terminal (built by `vm/build.sh`; see `vm/README.md`)
 - `static/style.css` — layout and theme; `static/suite-navigation.css` is shared with the arcade
-- `test/` — engine tests
+- `test/` — engine, `/api/llm` and `/api/decide` tests
 - `public/` — build output (gitignored)
 
 ## Conventions
