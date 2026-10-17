@@ -24,18 +24,16 @@ const BitSprite = (() => {
         exists: 'That name is already taken here.',
         no_match: "No matches. Try another word, or add -i to ignore upper and lower case.",
         offline: "This laptop is offline in the game, so downloads go nowhere. (Phew.)",
-        typo: 'So close! Check the spelling of that command, letter by letter.',
-        wrong_command: "That command is real, but it isn't the one this challenge needs. Click me for a hint!",
     };
 
     // 'quoted' commands, but not the apostrophes in words like you're
     const QUOTED = /(?<=^|[\s(])'([^'\n]+?)'(?=[\s.,;:!?)]|$)/g;
-    const stripAnsi = text => text.replace(/\u001b\[[\d;]*m/g, '');
+    const stripAnsi = text => text.replace(/\u001b\[\d+m/g, '');
 
     const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const pick = list => list[Math.floor(Math.random() * list.length)];
 
-    function create({ root, button, bubble, text, live, closeButton, canvas, ask, decide, context, onLayout }) {
+    function create({ root, button, bubble, text, live, closeButton, canvas, ask, context, onLayout }) {
         let enabled = true;
         let hideTimer = null;
         let moodTimer = null;
@@ -183,15 +181,8 @@ const BitSprite = (() => {
             requestAnimationFrame(frame);
         }
 
-        // Real bash errors carry no error code; Clef-flash sorts them into one (or 'other')
-        async function diagnose(command, output) {
-            if (!decide) return null;
-            const kind = await decide({ command, output, cwd: context().cwd, challenge: context().challenge });
-            return kind && kind !== 'other' && ERROR_LINES[kind] ? kind : null;
-        }
-
         // React to one command's result from the engine
-        async function react(result, command) {
+        function react(result, command) {
             track();
             if (result.gameComplete) {
                 animate('is-jumping');
@@ -217,14 +208,7 @@ const BitSprite = (() => {
             if (!result.error) return;
             streak.errors++;
             animate('is-shaking');
-            const output = stripAnsi(result.output).slice(0, 600);
-            let code = result.error.code;
-            if (!ERROR_LINES[code] && code !== 'unknown_command') {
-                const mine = request;
-                const kind = await diagnose(command, output);
-                if (mine !== request) return;
-                if (kind) code = kind;
-            }
+            const code = result.error.code;
             let fallback = ERROR_LINES[code] || "Not quite. Click me if you'd like a hint!";
             if (code === 'unknown_command' && result.events[0] && result.events[0].meta.suggestion) {
                 fallback = `I don't know '${result.error.cmd}'. Did you mean '${result.events[0].meta.suggestion}'?`;
@@ -235,7 +219,7 @@ const BitSprite = (() => {
                 return;
             }
             sayFromModel(
-                payload(streak.errors >= 3 ? 'stuck' : 'error', { command, output, mistake: ERROR_LINES[code] ? code : '', level: streak.errors >= 2 ? 2 : 1 }),
+                payload(streak.errors >= 3 ? 'stuck' : 'error', { command, output: stripAnsi(result.output).slice(0, 600), level: streak.errors >= 2 ? 2 : 1 }),
                 fallback,
                 { mood: 'worried', hold: 11000 },
             );

@@ -141,25 +141,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    let decideOff = false;
-    async function decide(payload) {
-        if (decideOff) return null;
-        try {
-            const res = await fetch('/api/decide', {
-                method: 'POST',
-                headers: { 'content-type': 'application/json' },
-                body: JSON.stringify(payload),
-                signal: AbortSignal.timeout(5000),
-            });
-            if ([404, 405, 501, 503].includes(res.status)) { decideOff = true; return null; }
-            if (!res.ok) return null;
-            const data = await res.json();
-            return typeof data.kind === 'string' ? data.kind : null;
-        } catch (_) {
-            return null;
-        }
-    }
-
     function context() {
         const c = view().currentChallenge();
         return { chapter: c.chapter, challenge: c.text, hint: c.hint, cwd: view().getPath(), challengeId: `${realMode ? 'real' : ''}${c.chapterIndex}:${c.id || 'done'}` };
@@ -174,7 +155,6 @@ document.addEventListener('DOMContentLoaded', () => {
         closeButton: $('bubbleClose'),
         canvas: $('confetti'),
         ask: llm,
-        decide,
         context,
         onLayout: () => scrollToEnd(),
     });
