@@ -101,7 +101,7 @@ echo '{"reward":"You have mastered basic CLI commands!","value":"$1,000,000","or
         currentChallenge() {
             const list = this.challenges();
             const c = list[this.step];
-            const base = { chapterIndex: this.chapter, chapter: this.sim[this.chapter].title, chapters: CHAPTERS.length, total: list.length, index: this.step };
+            const base = { chapterIndex: this.chapter, chapter: this.sim[this.chapter].title, chapters: this.sim.length, total: list.length, index: this.step };
             if (!c) return { ...base, done: true, text: "That's every real-terminal challenge so far. Keep exploring: this is a real Linux.", hint: "Try 'uname -a', 'ps', or write a script with echo and >." };
             return { ...base, id: c.id, text: c.text, hint: c.hint, done: false };
         }

@@ -28,6 +28,13 @@
     --focus: #8be9fd;
     --bubble: #2a2c3d;
 
+    /* Type: one sans for the interface, mono only for the terminal and code, five sizes */
+    --fs-label: 0.75rem;
+    --fs-small: 0.8125rem;
+    --fs-body: 0.9375rem;
+    --fs-lead: 1.0625rem;
+    --fs-title: 1.5rem;
+
     --gutter: max(clamp(12px, 2.5vw, 40px), env(safe-area-inset-left));
     --radius: 10px;
 }
@@ -43,6 +50,7 @@ body {
     background: var(--page);
     color: var(--text);
     font: 500 1rem/1.5 var(--font-ui);
+    font-variant-numeric: tabular-nums lining-nums;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
 }
@@ -114,7 +122,7 @@ a:hover { text-decoration-thickness: 2px; }
     align-items: center;
     gap: 10px;
     min-height: 46px;
-    font: 500 1.5rem/1.2 var(--font-ui);
+    font: 500 var(--fs-title)/1.2 var(--font-ui);
     letter-spacing: 0.01em;
 }
 .badge {
@@ -122,11 +130,11 @@ a:hover { text-decoration-thickness: 2px; }
     border: 1px solid var(--green);
     border-radius: 999px;
     color: var(--green);
-    font: 500 0.75rem/1.4 var(--font-mono);
-    letter-spacing: 0.06em;
+    font: 500 var(--fs-label)/1.4 var(--font-ui);
+    letter-spacing: 0.08em;
     text-transform: uppercase;
 }
-.tagline { color: var(--muted); }
+.tagline { color: var(--muted); font-size: var(--fs-body); }
 
 /* Page grid: challenge, terminal window and reference */
 .layout {
@@ -200,7 +208,7 @@ a:hover { text-decoration-thickness: 2px; }
     overflow: hidden;
     border-radius: 8px 8px 0 0;
     color: var(--muted);
-    font-size: 0.875rem;
+    font-size: var(--fs-small);
     text-decoration: none;
     white-space: nowrap;
 }
@@ -240,14 +248,14 @@ a.tab:focus-visible { outline-offset: -2px; }
     border-radius: 999px;
     background: transparent;
     color: var(--muted);
-    font: 500 0.8125rem/1 var(--font-ui);
+    font: 500 var(--fs-small)/1 var(--font-ui);
     cursor: pointer;
 }
 .mode-toggle:hover { color: var(--text); border-color: var(--muted); }
 .mode-toggle[aria-pressed="true"] { border-color: var(--green); background: rgba(80, 250, 123, 0.12); color: var(--green); }
 .mode-toggle:disabled { cursor: progress; }
-.mode-badge { font: 500 0.6875rem/1 var(--font-mono); letter-spacing: 0.04em; text-transform: uppercase; }
-@media (max-width: 600px) { .mode-badge { display: none; } }
+.mode-badge { font: 500 0.6875rem/1 var(--font-ui); letter-spacing: 0.08em; text-transform: uppercase; }
+@media (max-width: 600px) { .mode-badge, .tab-github { display: none; } }
 .window-button .icon-collapse,
 .window-button[aria-pressed="true"] .icon-expand { display: none; }
 .window-button[aria-pressed="true"] .icon-collapse { display: block; }
@@ -272,7 +280,7 @@ a.tab:focus-visible { outline-offset: -2px; }
     overflow: hidden;
     border-radius: 6px;
     background: var(--inset);
-    font: 400 0.8125rem/1.6 var(--font-mono);
+    font: 400 var(--fs-small)/1.6 var(--font-mono);
     white-space: nowrap;
     text-overflow: ellipsis;
 }
@@ -285,7 +293,7 @@ a.tab:focus-visible { outline-offset: -2px; }
     flex-direction: column;
     min-height: 0;
     padding: 0 16px;
-    font: 400 0.9375rem/1.55 var(--font-mono);
+    font: 400 var(--fs-body)/1.55 var(--font-mono);
 }
 
 .output {
@@ -313,7 +321,7 @@ a.tab:focus-visible { outline-offset: -2px; }
     padding: 1px 5px;
     border-radius: 4px;
     background: rgba(0, 0, 0, 0.3);
-    color: var(--yellow);
+    color: var(--text);
 }
 
 .banner {
@@ -344,13 +352,13 @@ a.tab:focus-visible { outline-offset: -2px; }
 .line.is-win { color: var(--green); }
 .line.is-note { color: var(--muted); }
 .line.is-error { color: var(--red); }
-.ansi-dir { color: var(--purple); font-weight: 500; }
+.ansi-dir { color: var(--cyan); font-weight: 500; }
 .ansi-dir::after { content: "/"; color: var(--muted); }
 .ansi-ok { color: var(--green); }
 .ansi-err { color: var(--red); }
 .ansi-warn { color: var(--yellow); }
-.ansi-file { color: var(--pink); }
-.ansi-agent { color: var(--cyan); }
+.ansi-file { color: var(--text); }
+.ansi-agent { color: var(--text); }
 .ansi-dim { color: var(--muted); }
 
 .prompt { color: var(--green); font-weight: 500; white-space: nowrap; }
@@ -364,16 +372,15 @@ a.tab:focus-visible { outline-offset: -2px; }
     border-left: 3px solid var(--green);
     border-radius: 4px;
     background: rgba(80, 250, 123, 0.06);
-    font-family: var(--font-ui);
     white-space: normal;
 }
 .line-chapter p + p { margin-top: 4px; }
-.chapter-heading { color: var(--green); letter-spacing: 0.02em; }
+.chapter-heading { color: var(--green); font-weight: 500; }
 .chapter-first code {
     padding: 1px 5px;
     border-radius: 4px;
     background: rgba(0, 0, 0, 0.3);
-    color: var(--yellow);
+    color: var(--text);
 }
 
 .input-line {
@@ -412,14 +419,14 @@ a.tab:focus-visible { outline-offset: -2px; }
     background: var(--chrome);
     border-top: 1px solid var(--line);
     color: var(--muted);
-    font-size: 0.8125rem;
+    font-size: var(--fs-small);
     white-space: nowrap;
 }
 .status-bar > * { overflow: hidden; text-overflow: ellipsis; }
 .status-cwd { flex: 0 1 auto; min-width: 0; color: var(--text); font-family: var(--font-mono); }
 .status-challenge { flex: 1 1 0; min-width: 0; }
 .status-keys { flex: none; margin-left: auto; }
-.status-keys kbd { font-size: 0.75rem; }
+.status-keys kbd { font-size: var(--fs-label); }
 
 /* ---------- Bit, the sprite by the prompt ---------- */
 .sprite {
@@ -487,7 +494,7 @@ a.tab:focus-visible { outline-offset: -2px; }
     background: var(--bubble);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
     color: var(--text);
-    font: 500 0.9375rem/1.45 var(--font-ui);
+    font: 500 var(--fs-body)/1.45 var(--font-ui);
     animation: bubble-in 0.18s ease-out;
 }
 .bubble::after {
@@ -502,12 +509,12 @@ a.tab:focus-visible { outline-offset: -2px; }
     background: var(--bubble);
     transform: rotate(45deg);
 }
-.bubble-name { color: var(--green); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.bubble-name { color: var(--green); font-size: var(--fs-label); letter-spacing: 0.08em; text-transform: uppercase; }
 .bubble-text code {
     padding: 1px 5px;
     border-radius: 4px;
     background: rgba(0, 0, 0, 0.3);
-    color: var(--yellow);
+    color: var(--text);
 }
 .bubble.is-thinking .bubble-text { color: var(--muted); font-style: italic; }
 .bubble-close {
@@ -566,11 +573,11 @@ a.tab:focus-visible { outline-offset: -2px; }
 }
 .mission h2 {
     color: var(--muted);
-    font: 500 0.8125rem/1.4 var(--font-ui);
+    font: 500 var(--fs-label)/1.4 var(--font-ui);
     letter-spacing: 0.08em;
     text-transform: uppercase;
 }
-.step-count { color: var(--muted); font: 400 0.8125rem/1.4 var(--font-mono); }
+.step-count { color: var(--muted); font: 500 var(--fs-small)/1.4 var(--font-ui); }
 
 progress {
     width: 100%;
@@ -587,11 +594,11 @@ progress::-webkit-progress-bar { background: var(--inset); }
 progress::-webkit-progress-value { background: var(--green); border-radius: 3px; transition: width 0.3s ease; }
 progress::-moz-progress-bar { background: var(--green); border-radius: 3px; }
 
-.chapter-label { color: var(--muted); font-size: 0.875rem; }
+.chapter-label { color: var(--muted); font-size: var(--fs-small); }
 .challenge {
     padding-left: 12px;
     border-left: 3px solid var(--green);
-    font-size: 1.125rem;
+    font-size: var(--fs-lead);
     line-height: 1.4;
 }
 
@@ -624,7 +631,7 @@ summary:hover { color: var(--green); }
     border-radius: 6px;
     background: var(--inset);
 }
-.hint summary { padding: 4px 10px; color: var(--purple); }
+.hint summary { padding: 4px 10px; color: var(--cyan); }
 .hint p { padding: 0 12px 10px 30px; line-height: 1.45; }
 
 .lesson-list {
@@ -633,7 +640,7 @@ summary:hover { color: var(--green); }
     padding: 0 8px 12px;
     list-style: none;
     counter-reset: step;
-    font-size: 0.9375rem;
+    font-size: var(--fs-body);
     line-height: 1.35;
 }
 .lesson-list li {
@@ -648,7 +655,7 @@ summary:hover { color: var(--green); }
 .lesson-list li::before {
     content: counter(step);
     color: var(--muted);
-    font: 400 0.8125rem/1.6 var(--font-mono);
+    font: 400 var(--fs-small)/1.6 var(--font-mono);
     text-align: right;
 }
 .lesson-list .is-done { color: var(--text); }
@@ -665,12 +672,12 @@ summary:hover { color: var(--green); }
 .ref-group > summary {
     min-height: 46px;
     padding: 0 18px;
-    font-size: 1.0625rem;
+    font-size: var(--fs-lead);
 }
 .ref-note {
     padding: 0 18px 6px;
     color: var(--muted);
-    font-size: 0.875rem;
+    font-size: var(--fs-small);
 }
 
 .command-list {
@@ -691,20 +698,20 @@ summary:hover { color: var(--green); }
     background: transparent;
     color: var(--muted);
     font: inherit;
-    font-size: 0.9375rem;
+    font-size: var(--fs-body);
     text-align: left;
     cursor: pointer;
 }
 .command-list button:hover { background: rgba(255, 255, 255, 0.05); color: var(--text); }
 .command-list button:active { background: rgba(80, 250, 123, 0.12); }
 .command-list button:focus-visible { outline-offset: -2px; }
-.command-list code { color: var(--yellow); font-size: 0.875rem; }
+.command-list code { color: var(--green); font-size: var(--fs-small); }
 .command-list span { flex: 1 1 9rem; }
 .command-group-title {
     padding: 6px 18px 2px;
     color: var(--muted);
-    font-size: 0.75rem;
-    letter-spacing: 0.06em;
+    font-size: var(--fs-label);
+    letter-spacing: 0.08em;
     text-transform: uppercase;
 }
 
@@ -741,22 +748,22 @@ summary:hover { color: var(--green); }
     border: 1px solid var(--line-strong);
     border-radius: 50%;
     color: var(--muted);
-    font: 500 0.8125rem/1 var(--font-mono);
+    font: 500 var(--fs-small)/1 var(--font-ui);
 }
 .is-done .chapter-num { border-color: var(--green); background: var(--green); color: #0b0c10; }
 .is-current .chapter-num { border-color: var(--green); color: var(--green); }
 .chapter-text { display: grid; gap: 1px; }
-.chapter-blurb { color: var(--muted); font-size: 0.8125rem; line-height: 1.35; }
-.chapter-state { padding-top: 3px; color: var(--muted); font-size: 0.75rem; white-space: nowrap; }
+.chapter-blurb { color: var(--muted); font-size: var(--fs-small); line-height: 1.4; }
+.chapter-state { padding-top: 3px; color: var(--muted); font-size: var(--fs-label); white-space: nowrap; }
 .is-done .chapter-state, .is-current .chapter-state { color: var(--green); }
-.command-list var { font-style: normal; color: var(--purple); }
+.command-list var { font-style: normal; color: var(--muted); }
 
 .tips-list {
     display: grid;
     gap: 8px;
     padding: 0 18px 14px 40px;
     color: var(--muted);
-    font-size: 0.9375rem;
+    font-size: var(--fs-body);
     line-height: 1.45;
 }
 .tips-list li::marker { color: var(--green); }
@@ -767,7 +774,7 @@ summary:hover { color: var(--green); }
     padding: 10px 18px 12px;
     border-top: 1px solid var(--line);
     color: var(--muted);
-    font-size: 0.875rem;
+    font-size: var(--fs-small);
 }
 .toggle {
     display: flex;
@@ -775,7 +782,7 @@ summary:hover { color: var(--green); }
     gap: 8px;
     min-height: 32px;
     color: var(--text);
-    font-size: 0.9375rem;
+    font-size: var(--fs-body);
     cursor: pointer;
 }
 .toggle input { width: 18px; height: 18px; margin: 0; accent-color: var(--green); }
@@ -787,7 +794,7 @@ summary:hover { color: var(--green); }
     background: none;
     color: var(--cyan);
     font: inherit;
-    font-size: 0.9375rem;
+    font-size: var(--fs-body);
     text-decoration: underline;
     text-underline-offset: 0.18em;
     cursor: pointer;
@@ -830,11 +837,11 @@ summary:hover { color: var(--green); }
         padding-top: calc(max(12px, env(safe-area-inset-top)) + 56px);
         padding-right: var(--gutter);
     }
-    .page-header h1 { min-height: 0; font-size: 1.375rem; }
-    .tagline { font-size: 0.9375rem; }
+    .page-header h1 { min-height: 0; font-size: 1.25rem; }
+    .tagline { font-size: var(--fs-body); }
     .layout { gap: 12px; padding-top: 12px; }
     .mission { padding: 14px; }
-    .challenge { font-size: 1.0625rem; }
+    .challenge { font-size: var(--fs-lead); }
     .terminal { padding: 0 12px; }
     .tab-bar { padding-left: 12px; gap: 10px; }
     .nav-arrows { display: none; }
