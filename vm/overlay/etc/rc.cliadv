@@ -1,0 +1,6 @@
+#!/bin/sh
+mount -t proc proc /proc; mount -t sysfs sys /sys; mount -t devtmpfs dev /dev 2>/dev/null
+mkdir -p /dev/pts /tmp; mount -t tmpfs tmp /tmp; chmod 1777 /tmp; chmod 666 /dev/ttyS0
+hostname cli-adventures
+mkdir -p /var/spool/cron/crontabs; crond -b -c /var/spool/cron/crontabs
+chown -R fsociety:fsociety /home/fsociety

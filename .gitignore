@@ -5,3 +5,4 @@ public/
 dist/
 .DS_Store
 .dev.vars
+vm/.work/

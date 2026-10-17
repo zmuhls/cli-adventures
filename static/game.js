@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const terminalWindow = $('terminalWindow');
     const expandButton = $('expandButton');
     const bitToggle = $('bitToggle');
+    const realToggle = $('realToggle');
 
     const SAVE_KEY = 'cli-adventures-save-v2';
     const BIT_KEY = 'cli-adventures-bit';
@@ -41,6 +42,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastTabValue = null;
     let lastReached = -1;
     let llmOff = false;
+    // Real terminal: Linux in the browser (realterm.js), playing realchapters.js
+    let real = null;
+    let realMode = false;
+    const view = () => (realMode ? real : game);
 
     // ---------- Rendering ----------
 
@@ -48,9 +53,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderAnsi(text) {
         const fragment = document.createDocumentFragment();
         let className = '';
-        text.split(/\u001b\[(\d+)m/).forEach((part, i) => {
+        text = text.replace(/\u001b\[[0-9;?]*[A-La-ln-z]|\u001b[()][A-Z0-9]|\r/g, '');
+        text.split(/\u001b\[([\d;]*)m/).forEach((part, i) => {
             if (i % 2) {
-                className = ANSI_CLASSES[part] || '';
+                const codes = part.split(';').filter(c => ANSI_CLASSES[c]);
+                className = codes.length ? ANSI_CLASSES[codes[codes.length - 1]] : '';
             } else if (part && className) {
                 const span = document.createElement('span');
                 span.className = className;
@@ -94,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function echo(command) {
         const line = document.createDocumentFragment();
-        line.append(element('span', game.pending ? 'prompt is-approval' : 'prompt', game.promptText()), command);
+        line.append(element('span', view().pending ? 'prompt is-approval' : 'prompt', view().promptText()), command);
         print(line, 'line-cmd');
     }
 
@@ -135,8 +142,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function context() {
-        const c = game.currentChallenge();
-        return { chapter: c.chapter, challenge: c.text, hint: c.hint, cwd: game.getPath(), challengeId: `${c.chapterIndex}:${c.id || 'done'}` };
+        const c = view().currentChallenge();
+        return { chapter: c.chapter, challenge: c.text, hint: c.hint, cwd: view().getPath(), challengeId: `${realMode ? 'real' : ''}${c.chapterIndex}:${c.id || 'done'}` };
     }
 
     const bit = BitSprite.create({
@@ -172,15 +179,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // ---------- Game state -> page ----------
 
     function updateLocation() {
-        prompt.textContent = game.promptText();
-        prompt.classList.toggle('is-approval', !!game.pending);
-        input.setAttribute('aria-label', game.pending ? 'Answer y or n' : 'Command');
-        cwdPath.textContent = game.getPath();
-        addressPath.textContent = game.cwd();
+        const g = view();
+        prompt.textContent = g.promptText();
+        prompt.classList.toggle('is-approval', !!g.pending);
+        input.setAttribute('aria-label', g.pending ? 'Answer y or n' : realMode ? 'Command for real Linux' : 'Command');
+        cwdPath.textContent = g.getPath();
+        addressPath.textContent = g.cwd();
     }
 
     function updateChallenge() {
-        const c = game.currentChallenge();
+        const c = view().currentChallenge();
         chapterLabel.textContent = `Chapter ${c.chapterIndex + 1} of ${c.chapters} · ${c.chapter}`;
         stepCount.textContent = c.done ? 'all done' : `${c.index + 1} of ${c.total}`;
         progressBar.max = c.total;
@@ -188,11 +196,19 @@ document.addEventListener('DOMContentLoaded', () => {
         progressBar.textContent = `${c.index} of ${c.total}`;
         challengeText.textContent = c.text;
         hintText.replaceChildren(renderQuoted(c.hint || ''));
-        statusChallenge.textContent = c.done ? 'Every adventure complete' : `Ch ${c.chapterIndex + 1} · ${c.index + 1}/${c.total}: ${c.text}`;
+        statusChallenge.textContent = (realMode ? 'Real Linux · ' : '') + (c.done ? (realMode ? 'Chapter 1 complete' : 'Every adventure complete') : `Ch ${c.chapterIndex + 1} · ${c.index + 1}/${c.total}: ${c.text}`);
+    }
+
+    // The real terminal covers Chapter 1 so far; the others stay in the simulator
+    function realChapterList() {
+        const c = real.currentChallenge();
+        return game.chapterList().map((ch, i) => i === c.chapterIndex
+            ? { ...ch, status: 'current', challenges: ch.challenges.map((x, j) => ({ ...x, state: j < c.index ? 'done' : j === c.index ? 'current' : 'todo' })) }
+            : { ...ch, status: 'locked', realOnly: true });
     }
 
     function renderChapters() {
-        const chapters = game.chapterList();
+        const chapters = realMode ? realChapterList() : game.chapterList();
         chapterList.replaceChildren(...chapters.map(ch => {
             const item = element('li');
             const button = element('button', `chapter-button is-${ch.status}`);
@@ -200,8 +216,8 @@ document.addEventListener('DOMContentLoaded', () => {
             button.dataset.chapter = ch.index;
             button.disabled = ch.status === 'locked';
             if (ch.status === 'current') button.setAttribute('aria-current', 'step');
-            const finished = ch.status === 'current' && game.currentChallenge().done;
-            const state = finished ? 'completed' : { done: 'completed', current: 'playing now', open: 'open', locked: 'locked' }[ch.status];
+            const finished = ch.status === 'current' && view().currentChallenge().done;
+            const state = ch.realOnly ? 'simulator only' : finished ? 'completed' : { done: 'completed', current: 'playing now', open: 'open', locked: 'locked' }[ch.status];
             const words = element('span', 'chapter-text');
             words.append(element('span', 'chapter-title', ch.title), element('span', 'chapter-blurb', ch.blurb));
             button.append(element('span', 'chapter-num', String(ch.index + 1)), words, element('span', 'chapter-state', state));
@@ -258,12 +274,44 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function save() {
-        storage.set(SAVE_KEY, game.serialize());
+        if (!realMode) storage.set(SAVE_KEY, game.serialize());
     }
 
     // ---------- Commands ----------
 
+    async function runReal(command) {
+        echo(command);
+        scrollToEnd();
+        input.setAttribute('aria-busy', 'true');
+        let r;
+        try {
+            r = await real.run(command);
+        } catch (err) {
+            print(`\u001b[31m${err.message}\u001b[0m`, 'is-error');
+            input.removeAttribute('aria-busy');
+            return;
+        }
+        input.removeAttribute('aria-busy');
+        if (/^\s*(clear|reset)\s*$/.test(command)) output.replaceChildren();
+        else {
+            if (r.stdout.trim()) print(r.stdout.replace(/\n+$/, ''));
+            if (r.stderr.trim()) print(r.stderr.replace(/\n+$/, ''), 'is-error');
+        }
+        for (const c of r.completed) print(`🎉 Challenge completed: ${c.text}`, 'is-win');
+        const chapterComplete = r.done && r.completed.length ? { title: real.currentChallenge().chapter, outro: 'You did it on a real Linux. Every command was the real thing.' } : null;
+        if (chapterComplete) print(`★ Chapter complete: ${chapterComplete.title}. ${chapterComplete.outro}`, 'is-chapter-done');
+        else if (r.completed.length) print(`Next: ${real.currentChallenge().text}`, 'is-note');
+        bit.react({
+            completed: r.completed, chapterComplete, gameComplete: false, prompt: null,
+            error: r.code === 0 ? null : { cmd: command.trim().split(/\s+/)[0], code: 'real', message: r.stderr },
+            output: r.stdout + r.stderr, events: [{ meta: {} }],
+        }, command);
+        refresh();
+        scrollToEnd();
+    }
+
     function run(command) {
+        if (realMode) return runReal(command);
         echo(command);
         const r = game.run(command);
         if (r.clear) output.replaceChildren();
@@ -296,7 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // otherwise Tab keeps its usual job of moving focus.
     function complete() {
         const value = input.value;
-        if (!value.trim() || game.pending || input.selectionStart !== value.length) return false;
+        if (realMode || !value.trim() || game.pending || input.selectionStart !== value.length) return false;
         const { value: next, options } = game.complete(value);
         if (next.length > value.length) {
             input.value = next;
@@ -365,7 +413,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     chapterList.addEventListener('click', (e) => {
         const button = e.target.closest('[data-chapter]');
-        if (!button || button.disabled) return;
+        if (!button || button.disabled || realMode) return;
         const index = Number(button.dataset.chapter);
         const current = game.currentChallenge();
         if (index === current.chapterIndex && !current.done) return;
@@ -386,6 +434,41 @@ document.addEventListener('DOMContentLoaded', () => {
         lastReached = -1;
         output.replaceChildren(welcomeTemplate.cloneNode(true));
         refresh();
+        input.focus();
+    });
+
+    realToggle.addEventListener('click', async () => {
+        if (realMode) {
+            realMode = false;
+            realToggle.setAttribute('aria-pressed', 'false');
+            print('Back in the simulator. Your real Linux keeps running in the background.', 'is-note');
+            refresh();
+            scrollToEnd();
+            input.focus();
+            return;
+        }
+        realToggle.setAttribute('aria-pressed', 'true');
+        realToggle.disabled = true;
+        output.replaceChildren();
+        print('Starting a real Linux inside your browser. The first time downloads about 11 MB…', 'is-note');
+        try {
+            if (!real) {
+                const backend = new RealTerminal.V86Backend();
+                const { seconds } = await backend.boot();
+                real = new RealChapters.Game(backend, CLIGame.CHAPTERS);
+                await real.start();
+                print(`Linux is up (${seconds.toFixed(1)} s). Everything you type now runs in a real bash on a real Linux kernel, right here in the tab.`, 'is-note');
+            }
+            realMode = true;
+            chapterIntro({ index: 0, title: real.currentChallenge().chapter, intro: 'Same mission, real machine: the files, errors and output are all genuine.' });
+            bit.say("We're on a real Linux now! Same mission, real commands.", { mood: 'happy', hold: 6000 });
+        } catch (err) {
+            realToggle.setAttribute('aria-pressed', 'false');
+            print(`\u001b[31mThe real terminal could not start: ${err.message}\u001b[0m`, 'is-error');
+        }
+        realToggle.disabled = false;
+        refresh();
+        scrollToEnd();
         input.focus();
     });
 

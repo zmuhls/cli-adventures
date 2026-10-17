@@ -19,6 +19,10 @@ Bit sits next to the prompt. It jumps when you complete a challenge, looks worri
 
 When the Worker has a gateway key, Bit's lines and the in-game agent's cloud answers come from a small language model (Gemma 4 through the CUNY AI Lab gateway). Otherwise both use scripted lines. Challenges never depend on what the model says, so the game plays the same either way. The local model in Chapter 3 is simulated and never makes a network call, which matches what the game tells players.
 
+## Real Linux (beta)
+
+The **Real Linux** button in the window's tab bar swaps the simulator for a real Linux 6.12 with bash, booted inside the tab by the [v86](https://github.com/copy/v86) emulator. Nothing runs on a server. The first start downloads about 11 MB and takes a few seconds; after that, every command, error and output is the real thing. Chapter 1 plays there so far, with challenges checked against the real files; the other chapters stay in the simulator. Click the button again to go back, with your simulator progress where you left it. How the image is built, and its licenses, are in [`vm/README.md`](vm/README.md).
+
 ## Features
 
 - Terminal simulator inside a browser-window frame whose address bar follows your current directory
