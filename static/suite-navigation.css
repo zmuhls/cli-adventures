@@ -24,7 +24,7 @@
 @media(max-width:600px){
   .suite-nav{top:max(12px,env(safe-area-inset-top));gap:8px}
   .suite-nav-links{gap:8px}
-  :is(.suite-nav,.suite-nav-inline) .suite-nav-button{padding-inline:12px}
+  :is(.suite-nav,.suite-nav-inline) .suite-nav-button{min-height:44px;padding:8px 10px;font-size:1rem}
 }
 @media(prefers-reduced-motion:reduce){:is(.suite-nav,.suite-nav-inline) .suite-nav-button{transition:none}}
 @media(forced-colors:active){:is(.suite-nav,.suite-nav-inline) .suite-nav-button{border-color:ButtonText;background:ButtonFace;color:ButtonText}:is(.suite-nav,.suite-nav-inline) .suite-nav-button:focus-visible{outline-color:Highlight;box-shadow:none}}
