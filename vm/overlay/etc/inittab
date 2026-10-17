@@ -1,0 +1,3 @@
+::sysinit:/etc/rc.cliadv
+ttyS0::respawn:/bin/su -s /usr/local/bin/bash fsociety -c /usr/local/bin/cliadv-runner
+::shutdown:/bin/umount -a -r

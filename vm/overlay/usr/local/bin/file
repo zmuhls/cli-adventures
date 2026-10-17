@@ -1,0 +1,19 @@
+#!/bin/sh
+# A small 'file': tells what a file really is from its first bytes, not its name
+[ $# -eq 0 ] && { echo "Usage: file FILE..." >&2; exit 1; }
+for f in "$@"; do
+  if [ ! -e "$f" ]; then echo "$f: cannot open (No such file or directory)"; continue; fi
+  if [ -d "$f" ]; then echo "$f: directory"; continue; fi
+  if [ ! -s "$f" ]; then echo "$f: empty"; continue; fi
+  head=$(head -c 4 "$f" | od -An -tx1 | tr -d ' \n')
+  case "$head" in
+    7f454c46*) t="ELF 32-bit executable";;
+    504b0304*) t="Zip archive data";;
+    ffd8ff*) t="JPEG image data";;
+    25504446*) t="PDF document";;
+    2321*) t="$(head -n1 "$f" | grep -q bash && echo Bourne-Again shell script || echo POSIX shell script), ASCII text executable";;
+    7b*|5b*) t="JSON text data";;
+    *) t="ASCII text";;
+  esac
+  echo "$f: $t"
+done

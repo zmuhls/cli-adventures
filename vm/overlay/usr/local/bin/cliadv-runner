@@ -1,0 +1,29 @@
+#!/usr/local/bin/bash
+# CLI Adventures runner: reads one request per line on the serial console and answers
+#   X<base64>  run a player's command with their saved cwd and variables
+#   P<base64>  run a script as-is (game setup and challenge checks)
+# Reply: \036R <exit> <cwd b64> <stdout b64> <stderr b64>
+export HOME=/home/fsociety USER=fsociety LOGNAME=fsociety SHELL=/usr/local/bin/bash
+export PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin LANG=C.UTF-8 TERM=dumb COLUMNS=76
+mkdir -p "$HOME/.cliadv"; cd "$HOME"
+stty raw -echo 2>/dev/null
+printf '\036READY\n'
+while IFS= read -r line; do
+  line=${line%$'\r'}
+  kind=${line:0:1}
+  code=$(printf '%s' "${line:1}" | base64 -d 2>/dev/null)
+  if [ "$kind" = X ]; then
+    direct=1; case "$code" in *'|'*|*'>'*) direct=0;; esac
+    script="source \"\$HOME/.cliadv/state\" 2>/dev/null || cd \"\$HOME\"
+__save() { __rc=\$?; { printf 'cd %q\n' \"\$PWD\"; export -p; } > \"\$HOME/.cliadv/state\"; printf '%s %s' \"\$__rc\" \"\$PWD\" > \"\$HOME/.cliadv/last\"; }
+trap __save EXIT
+[ $direct = 1 ] && ls() { command ls -C --color=always \"\$@\"; }
+$code"
+  else
+    script=$code
+  fi
+  timeout 20 bash --noprofile --norc -c "$script" </dev/null >/tmp/.o 2>/tmp/.e
+  rc=$?; cwd=$PWD
+  if [ "$kind" = X ] && [ -s "$HOME/.cliadv/last" ]; then read -r rc cwd < "$HOME/.cliadv/last"; rm -f "$HOME/.cliadv/last"; fi
+  printf '\036R %s %s %s %s\n' "$rc" "$(printf %s "$cwd" | base64 | tr -d '\n')" "$(base64 </tmp/.o | tr -d '\n')" "$(base64 </tmp/.e | tr -d '\n')"
+done

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="color-scheme" content="dark">
     <meta name="theme-color" content="#121318">
-    <meta name="description" content="Learn terminal commands by tracking down a stolen file in a simulated command line.">
+    <meta name="description" content="Learn the command line, then put an AI agent to work in it: local models, knowledge bases, system prompts and a malware hunt.">
     <title>CLI Adventures (beta)</title>
     <link rel="preload" href="static/fonts/ibm-plex-mono-latin-400.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="static/style.css">
@@ -18,7 +18,7 @@
 
     <header class="page-header">
         <h1>CLI Adventures <span class="badge">Beta</span></h1>
-        <p class="tagline">Learn the command line by tracking down a stolen file.</p>
+        <p class="tagline">Learn the command line, then put an AI agent to work in it.</p>
     </header>
 
     <main class="layout">
@@ -35,6 +35,7 @@
                         GitHub<span class="visually-hidden"> (opens in a new tab)</span>
                     </a>
                 </div>
+                <button class="mode-toggle" id="realToggle" type="button" aria-pressed="false" title="Run your commands on a real Linux, inside this tab">Real Linux <span class="mode-badge">beta</span></button>
                 <button class="window-button" id="expandButton" type="button" aria-pressed="false" title="Expand terminal">
                     <svg class="icon-expand" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M9.5 2.5h4v4M6.5 13.5h-4v-4M13.5 2.5 9 7M2.5 13.5 7 9"/></svg>
                     <svg class="icon-collapse" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M13.5 6.5h-4v-4M2.5 9.5h4v4M9.5 6.5l4-4M6.5 9.5l-4 4"/></svg>
@@ -69,9 +70,38 @@
                     </div>
                 </div>
                 <form class="input-line" id="commandForm" autocomplete="off">
-                    <span class="prompt" aria-hidden="true"><span id="promptPath">~</span> $</span>
+                    <span class="prompt" id="prompt" aria-hidden="true">~ $</span>
                     <input id="commandInput" type="text" name="command" aria-label="Command" aria-describedby="cwdStatus" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="send">
                 </form>
+                <div class="sprite" id="sprite" data-mood="idle">
+                    <div class="bubble" id="bubble" hidden>
+                        <p class="bubble-name" aria-hidden="true">Bit</p>
+                        <p class="bubble-text" id="bubbleText"></p>
+                        <button class="bubble-close" id="bubbleClose" type="button" aria-label="Close Bit's message">
+                            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M4 4l8 8M12 4l-8 8"/></svg>
+                        </button>
+                    </div>
+                    <button class="sprite-button" id="spriteButton" type="button" aria-label="Ask Bit for a hint">
+                        <svg class="bit" viewBox="0 0 12 11" width="44" height="40" shape-rendering="crispEdges" aria-hidden="true">
+                            <rect class="bit-tip" x="5" y="0" width="2" height="1"/>
+                            <rect class="bit-dark" x="5" y="1" width="2" height="1"/>
+                            <rect class="bit-arm bit-arm-left" x="0" y="5" width="1" height="2"/>
+                            <rect class="bit-arm bit-arm-right" x="11" y="5" width="1" height="2"/>
+                            <path class="bit-body" d="M2 2h8v1h1v6h-1v1H2V9H1V3h1z"/>
+                            <rect class="bit-visor" x="2" y="3" width="8" height="4"/>
+                            <g class="bit-eyes bit-eyes-idle"><rect x="3" y="4" width="2" height="2"/><rect x="7" y="4" width="2" height="2"/></g>
+                            <g class="bit-eyes bit-eyes-happy"><rect x="3" y="4" width="2" height="1"/><rect x="7" y="4" width="2" height="1"/></g>
+                            <g class="bit-eyes bit-eyes-worried"><rect x="4" y="4" width="1" height="2"/><rect x="7" y="4" width="1" height="2"/></g>
+                            <rect class="bit-mouth bit-mouth-idle" x="5" y="8" width="2" height="1"/>
+                            <rect class="bit-mouth bit-mouth-happy" x="4" y="8" width="4" height="1"/>
+                            <g class="bit-blush"><rect x="2" y="7" width="1" height="1"/><rect x="9" y="7" width="1" height="1"/></g>
+                            <rect class="bit-sweat" x="11" y="2" width="1" height="2"/>
+                            <rect class="bit-dark" x="3" y="10" width="2" height="1"/>
+                            <rect class="bit-dark" x="7" y="10" width="2" height="1"/>
+                        </svg>
+                    </button>
+                </div>
+                <p class="visually-hidden" id="bitLive" role="status"></p>
             </div>
 
             <div class="status-bar">
@@ -86,7 +116,8 @@
                 <h2 id="missionHeading">Current challenge</h2>
                 <span class="step-count" id="stepCount">1 of 10</span>
             </div>
-            <progress id="progressBar" max="10" value="0" aria-label="Challenges completed">0 of 10</progress>
+            <progress id="progressBar" max="10" value="0" aria-label="Challenges completed in this chapter">0 of 10</progress>
+            <p class="chapter-label" id="chapterLabel">Chapter 1 · The Stolen Treasure</p>
             <p class="challenge" id="currentChallenge">List the contents of your home directory</p>
             <details class="hint" open>
                 <summary>Hint</summary>
@@ -96,47 +127,45 @@
 
         <aside class="reference panel" aria-labelledby="referenceHeading">
             <h2 class="visually-hidden" id="referenceHeading">Reference</h2>
+            <details class="ref-group" open>
+                <summary>Chapters</summary>
+                <ol class="chapter-list" id="chapterList"></ol>
+            </details>
             <details class="ref-group">
-                <summary>All challenges</summary>
+                <summary>Challenges in this chapter</summary>
                 <ol class="lesson-list" id="lessonList"></ol>
             </details>
             <details class="ref-group" open>
                 <summary>Commands</summary>
                 <p class="ref-note">Pick one to place it at the prompt.</p>
-                <ul class="command-list">
-                    <li><button type="button" data-insert="ls"><code>ls</code><span>List what's here</span></button></li>
-                    <li><button type="button" data-insert="cd "><code>cd <var>dir</var></code><span>Go into a directory</span></button></li>
-                    <li><button type="button" data-insert="cd .."><code>cd ..</code><span>Go up one level</span></button></li>
-                    <li><button type="button" data-insert="cd ~"><code>cd ~</code><span>Go home</span></button></li>
-                    <li><button type="button" data-insert="pwd"><code>pwd</code><span>Show where you are</span></button></li>
-                    <li><button type="button" data-insert="cat "><code>cat <var>file</var></code><span>Read a file</span></button></li>
-                    <li><button type="button" data-insert="mkdir "><code>mkdir <var>dir</var></code><span>Make a directory</span></button></li>
-                    <li><button type="button" data-insert="touch "><code>touch <var>file</var></code><span>Make an empty file</span></button></li>
-                    <li><button type="button" data-insert="cp "><code>cp <var>src dst</var></code><span>Copy a file</span></button></li>
-                    <li><button type="button" data-insert="mv "><code>mv <var>src dst</var></code><span>Move or rename</span></button></li>
-                    <li><button type="button" data-insert="rm "><code>rm <var>file</var></code><span>Remove a file</span></button></li>
-                    <li><button type="button" data-insert="unzip "><code>unzip <var>file</var></code><span>Extract a .zip</span></button></li>
-                    <li><button type="button" data-insert="clear"><code>clear</code><span>Clear the screen</span></button></li>
-                    <li><button type="button" data-insert="reset"><code>reset</code><span>Start the game over</span></button></li>
-                    <li><button type="button" data-insert="help"><code>help</code><span>List every command</span></button></li>
-                </ul>
+                <div id="commandGroups"></div>
             </details>
             <details class="ref-group">
                 <summary>Tips</summary>
                 <ul class="tips-list">
-                    <li>Press <kbd>↑</kbd> and <kbd>↓</kbd> to bring back earlier commands.</li>
-                    <li><kbd>Tab</kbd> finishes command and file names. On an empty prompt it moves focus on, as usual.</li>
-                    <li>Purple names ending in <code>/</code> are directories you can <code>cd</code> into.</li>
+                    <li>Click Bit, the little sprite by the prompt, for a hint. Click again for a bigger one.</li>
+                    <li>Press <kbd>↑</kbd> and <kbd>↓</kbd> to bring back earlier commands. <kbd>Tab</kbd> finishes names; on an empty prompt it moves focus on.</li>
+                    <li>Purple names ending in <code>/</code> are directories. Names that start with a dot are hidden; <code>ls -a</code> shows them.</li>
                     <li><code>~</code> is short for your home directory, <code>/home/fsociety</code>.</li>
-                    <li><kbd>Ctrl</kbd> + <kbd>L</kbd> clears the screen. <code>reset</code> starts over.</li>
+                    <li>When the agent asks <code>allow? [y/n]</code>, read exactly what it wants to run before you answer.</li>
+                    <li><kbd>Ctrl</kbd> + <kbd>L</kbd> clears the screen. <code>reset</code> restarts the chapter.</li>
                     <li>Expand the terminal with the button in its tab bar; <kbd>Esc</kbd> restores it.</li>
                 </ul>
             </details>
-            <p class="ref-footer">Beta. Progress lasts until you reload the page. <a href="https://github.com/zmuhls/cli-adventures" target="_blank" rel="noopener">Report a bug or contribute<span class="visually-hidden"> (opens in a new tab)</span></a></p>
+            <div class="ref-footer">
+                <label class="toggle"><input type="checkbox" id="bitToggle" checked> Bit gives tips</label>
+                <button class="text-button" id="startOver" type="button">Start over</button>
+                <p>Beta. Progress is saved in this browser. <a href="https://github.com/zmuhls/cli-adventures" target="_blank" rel="noopener">Report a bug or contribute<span class="visually-hidden"> (opens in a new tab)</span></a></p>
+            </div>
         </aside>
     </main>
 
+    <canvas class="confetti" id="confetti" aria-hidden="true" hidden></canvas>
+
     <script src="static/engine.js"></script>
+    <script src="static/sprite.js"></script>
+    <script src="static/realterm.js"></script>
+    <script src="static/realchapters.js"></script>
     <script src="static/game.js"></script>
 </body>
 </html>

@@ -1,76 +1,70 @@
 # CLI Adventures [BETA]
 
-A web-based game for learning terminal commands through interactive challenges in a simulated CLI environment. This is currently in beta - please submit a pull request if you find any bugs or have suggestions for improvements.
+A browser game that teaches the command line, then uses it to teach how AI agents work. It runs in a simulated terminal, so nothing can break. This is currently in beta - please submit a pull request if you find any bugs or have suggestions for improvements.
 
-## About
+## Chapters
 
-CLI Adventures is an educational game that helps users learn terminal commands through practical, hands-on scenarios. The game simulates a command-line interface in the browser, allowing users to practice essential commands like `ls`, `cd`, `cat`, and more in a risk-free environment.
+1. **The Stolen Treasure**: move around, read files, and put a stolen file back (`ls`, `cd`, `cat`, `pwd`, `mkdir`, `mv`, `unzip`)
+2. **Wake the Agent**: find hidden files, vet a package, install a command-line agent, protect its key with `chmod 600`, and sign it in
+3. **Bring It Home**: compare model sizes with free disk space (`df -h`), pull a local Gemma model, switch the agent to it, and find it with `ps`
+4. **Memory Palace**: build a knowledge base with `grep`, globs and `cp`, keep private notes out of it, count words with `wc`, index it, and see the agent admit what its notes don't say
+5. **Standing Orders**: list the agent's tools, write a system prompt with `>` and `>>`, write a skill, grant a tool with approval, and run the skill
+6. **Ghost in the Downloads**: find a cryptominer with `ps`, unmask a fake invoice with `file`, survive a prompt injection hidden in it, `kill` the process, remove its `crontab` persistence and hidden copy, and rotate the leaked key
+
+Chapters unlock in order and can be replayed from the sidebar. Progress is saved in the browser.
+
+## Bit, the sprite
+
+Bit sits next to the prompt. It jumps when you complete a challenge, looks worried and explains when a command fails, gives a hint (then a bigger one) when clicked, and throws confetti when a chapter or the whole game is done. It can be switched off in the sidebar, and it stays still when the system asks for reduced motion.
+
+When the Worker has a gateway key, Bit's lines and the in-game agent's cloud answers come from a fast language model (DeepSeek V4 Flash through the CUNY AI Lab gateway). Otherwise both use scripted lines. Challenges never depend on what the model says, so the game plays the same either way. The local model in Chapter 3 is simulated and never makes a network call, which matches what the game tells players.
+
+## Real Linux (beta)
+
+The **Real Linux** button in the window's tab bar swaps the simulator for a real Linux 6.12 with bash, booted inside the tab by the [v86](https://github.com/copy/v86) emulator. Nothing runs on a server. The first start downloads about 11 MB and takes a few seconds; after that, every command, error and output is the real thing. Chapter 1 plays there so far, with challenges checked against the real files; the other chapters stay in the simulator. Click the button again to go back, with your simulator progress where you left it. How the image is built, and its licenses, are in [`vm/README.md`](vm/README.md).
 
 ## Features
 
 - Terminal simulator inside a browser-window frame whose address bar follows your current directory
-- Ten step-by-step challenges with a progress bar, hints and a full challenge list
-- Virtual file system for exploration, with real-looking paths (`~/projects/hidden_vault`, `pwd` → `/home/fsociety/...`)
-- Command history (↑/↓), Tab completion and Ctrl+L to clear
-- Command reference whose entries drop a command at the prompt, handy on phones
+- A small shell: paths with `~` and `..`, hidden dotfiles, permissions, `*` globs, pipes (`|`), `>` and `>>`, `&&`, `$VARIABLES`, and scripts
+- Beginner-friendly errors with a tip under each one
+- Command history (↑/↓), Tab completion for commands, sub-commands and paths, and Ctrl+L to clear
+- A command reference that grows with each chapter; its entries drop a command at the prompt, handy on phones
 - Expand button that lets the terminal fill the screen (Esc restores it)
 - Layout that fits one screen on desktop and stacks challenge → terminal → reference on phones
 
 ## Accessibility
 
-- Terminal output is a live log, so screen readers announce results and completed challenges
+- Terminal output is a live log, so screen readers announce results and completed challenges; Bit's lines go to a status region
 - Every control is a real button, link or disclosure with a visible focus ring; a skip link jumps to the prompt
 - Tab completes names but never traps focus: on an empty prompt it moves on as usual
 - Text meets WCAG AA contrast; directories are marked with a trailing `/`, not by colour alone
-- Respects reduced motion and Windows high-contrast (forced colours)
+- Respects reduced motion (no jumping, no confetti) and Windows high-contrast (forced colours)
 
-## Deployment Options
+## Deployment
 
 ### Cloudflare Worker (Arcade)
 
 The arcade installation is https://cli-adventures.ailab-452.workers.dev/.
-Run `npm ci`, `npm run check`, then `npm run deploy`. The Worker serves the original browser game and exposes `/health` with its source release. Games returns to the shared arcade; CUNY Login opens the existing Lab workspace. Game progress stays in the current browser tab and resets on reload.
+Run `npm ci`, `npm run check`, then `npm run deploy`. The Worker serves the game, exposes `/health` with its source release, and answers `POST /api/llm` for Bit and the in-game agent. Games returns to the shared arcade; CUNY Login opens the existing Lab workspace.
 
-### GitHub Pages
+To turn the language model on, give the Worker an app key (`sk-cail-…`) from the CAIL Model Access Registry:
 
-This version is configured for GitHub Pages deployment:
-1. Push this code to your GitHub repository
-2. Enable GitHub Pages in your repository settings
-3. Set the source to the main branch
-4. The game will be available at your GitHub Pages URL
+```sh
+npx wrangler secret put CAIL_GATEWAY_API_KEY
+```
 
-### Static Web Server
+The gateway address and model are the `CAIL_GATEWAY_URL` and `LLM_MODEL` vars in `wrangler.jsonc` (`deepseek-v4-flash-0731` by default). `/api/llm` only accepts the game's own requests: same-origin, capped input lengths, short replies, and at most 20 requests a minute per visitor (the `LLM_LIMITER` binding). Without the secret it answers 503 and the page uses its scripted lines. For local development, put the key in `.dev.vars`.
 
-Just upload all files to your web server - no server-side processing required.
+### Static hosting
 
-## Commands Supported
-
-- `ls` - List directory contents
-- `cd [directory]` - Change directory
-- `cat [file]` - View file contents
-- `pwd` - Print working directory
-- `mkdir [directory]` - Create directory
-- `touch [file]` - Create empty file
-- `rm [file]` - Remove file
-- `mv [src] [dst]` - Move/rename file
-- `cp [src] [dst]` - Copy file
-- `unzip [file.zip]` - Extract zip file
-- `clear` - Clear the terminal
-- `reset` - Reset the game
-- `help` - Show available commands
-
-## Challenges
-
-The game includes several challenges designed to progressively teach CLI concepts:
-1. Navigation - Learn to move around directories
-2. File inspection - View file contents
-3. Hidden treasures - Find secret locations and complete the treasure hunt mission
+`index.html` and `static/` also run from any static host or GitHub Pages. Without the Worker there is no `/api/llm`, so Bit and the agent use their scripted lines.
 
 ## Technologies Used
 
-- Frontend: HTML, CSS, JavaScript (`static/engine.js` is the game, `static/game.js` drives the page)
-- Hosting: Cloudflare Worker serving static assets
-- Tests: `npm test` plays the mission through the engine with Node's test runner
+- Frontend: HTML, CSS, JavaScript. `static/engine.js` is the game (filesystem, shell, chapters), `static/sprite.js` is Bit, and `static/game.js` drives the page
+- Hosting: Cloudflare Worker (`src/index.ts`, with `src/llm.ts` for the model endpoint)
+- Tests: `npm test` plays every chapter through the engine and checks `/api/llm` against a fake gateway
 
 ## License
 
