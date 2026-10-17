@@ -3,7 +3,7 @@ import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { handleLlm, cleanReply } from '../src/llm.ts';
 
-const ENV = { CAIL_GATEWAY_API_KEY: 'sk-cail-test', CAIL_GATEWAY_URL: 'https://gateway.test/v1', LLM_MODEL: 'gemma-4-26b-a4b-it' };
+const ENV = { CAIL_GATEWAY_API_KEY: 'sk-cail-test', CAIL_GATEWAY_URL: 'https://gateway.test/v1', LLM_MODEL: 'deepseek-v4-flash-0731' };
 const realFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = realFetch; });
 
@@ -35,10 +35,10 @@ test('a sprite request reaches the gateway with the game facts and comes back as
     const calls = fakeGateway("<think>hmm</think>**Close!** Try `ls` to see the folder names.");
     const res = await handleLlm(post(SPRITE), ENV);
     assert.equal(res.status, 200);
-    assert.deepEqual(await res.json(), { text: "Close! Try 'ls' to see the folder names.", model: 'gemma-4-26b-a4b-it' });
+    assert.deepEqual(await res.json(), { text: "Close! Try 'ls' to see the folder names.", model: 'deepseek-v4-flash-0731' });
     assert.equal(calls[0].url, 'https://gateway.test/v1/chat/completions');
     assert.equal(calls[0].init.headers.authorization, 'Bearer sk-cail-test');
-    assert.equal(calls[0].body.model, 'gemma-4-26b-a4b-it');
+    assert.equal(calls[0].body.model, 'deepseek-v4-flash-0731');
     assert.match(calls[0].body.messages[1].content, /Last command: cd docs/);
     assert.match(calls[0].body.messages[0].content, /You are Bit/);
 });

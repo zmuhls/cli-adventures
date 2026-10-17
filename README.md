@@ -17,7 +17,7 @@ Chapters unlock in order and can be replayed from the sidebar. Progress is saved
 
 Bit sits next to the prompt. It jumps when you complete a challenge, looks worried and explains when a command fails, gives a hint (then a bigger one) when clicked, and throws confetti when a chapter or the whole game is done. It can be switched off in the sidebar, and it stays still when the system asks for reduced motion.
 
-When the Worker has a gateway key, Bit's lines and the in-game agent's cloud answers come from a small language model (Gemma 4 through the CUNY AI Lab gateway). Otherwise both use scripted lines. Challenges never depend on what the model says, so the game plays the same either way. The local model in Chapter 3 is simulated and never makes a network call, which matches what the game tells players.
+When the Worker has a gateway key, Bit's lines and the in-game agent's cloud answers come from a fast language model (DeepSeek V4 Flash through the CUNY AI Lab gateway). Otherwise both use scripted lines. Challenges never depend on what the model says, so the game plays the same either way. The local model in Chapter 3 is simulated and never makes a network call, which matches what the game tells players.
 
 ## Real Linux (beta)
 
@@ -54,7 +54,7 @@ To turn the language model on, give the Worker an app key (`sk-cail-…`) from t
 npx wrangler secret put CAIL_GATEWAY_API_KEY
 ```
 
-The gateway address and model are the `CAIL_GATEWAY_URL` and `LLM_MODEL` vars in `wrangler.jsonc` (`gemma-4-26b-a4b-it` by default). `/api/llm` only accepts the game's own requests: same-origin, capped input lengths, short replies, and at most 20 requests a minute per visitor (the `LLM_LIMITER` binding). Without the secret it answers 503 and the page uses its scripted lines. For local development, put the key in `.dev.vars`.
+The gateway address and model are the `CAIL_GATEWAY_URL` and `LLM_MODEL` vars in `wrangler.jsonc` (`deepseek-v4-flash-0731` by default). `/api/llm` only accepts the game's own requests: same-origin, capped input lengths, short replies, and at most 20 requests a minute per visitor (the `LLM_LIMITER` binding). Without the secret it answers 503 and the page uses its scripted lines. For local development, put the key in `.dev.vars`.
 
 ### Static hosting
 

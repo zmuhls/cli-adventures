@@ -6,7 +6,7 @@ const CLIGame = (() => {
 
     const HOME = '/home/fsociety';
     const SAVE_VERSION = 2;
-    const CLOUD_MODEL = 'gemma-4-26b-a4b-it';
+    const CLOUD_MODEL = 'deepseek-v4-flash-0731';
 
     // ---------- Output helpers ----------
 
@@ -170,7 +170,7 @@ chmod +x ~/.cache/.kworker-gpu
     const MODELS = {
         'gemma-4-e2b': { size: 1.5 * GB, ram: '2 GB', note: 'small, runs on most laptops' },
         'gemma-4-e4b': { size: 3.1 * GB, ram: '4 GB', note: 'better answers, needs more memory' },
-        'gemma-4-26b-a4b': { size: 16 * GB, ram: '18 GB', note: 'the one the lab runs in the cloud' },
+        'gemma-4-26b-a4b': { size: 16 * GB, ram: '18 GB', note: 'the biggest; needs a workstation' },
     };
     const DISK_SIZE = 8 * GB, DISK_BASE_USED = 1.9 * GB;
 
