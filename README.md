@@ -19,6 +19,14 @@ Bit sits next to the prompt. It jumps when you complete a challenge, looks worri
 
 When the Worker has a gateway key, Bit's lines and the in-game agent's cloud answers come from a fast language model (DeepSeek V4 Flash through the CUNY AI Lab gateway). Otherwise both use scripted lines. Challenges never depend on what the model says, so the game plays the same either way. The local model in Chapter 3 is simulated and never makes a network call, which matches what the game tells players.
 
+## How the game adapts
+
+`static/coach.js` keeps what the game knows about a player, in plain code that the model never sees and the player's words never change. The three parts feed each other.
+
+- **Skills.** Every command counts as evidence for the concepts it uses (moving around, reading, organizing, archives, permissions, variables, processes, searching, output, scripts), in the order the chapters teach them. A success raises a concept's estimate and a failure lowers it; a success right after a big hint counts for less. The sidebar shows them under **Your skills**.
+- **The hint ladder.** Clicking Bit climbs one step at a time: the goal, then the idea, then a question, then which command, then the exact command. How high Bit may go is capped by errors on this challenge, time stuck and skill with its concept, never by what the player types. When a hint is taken up and works, the next one starts lower. When Bit's lines come from the model, it only gets the words for the allowed step, the exact command only at the top step, and any reply that names the command too early is replaced with the scripted line. Each hint is logged with whether the next command used it and whether it worked.
+- **The review.** When a chapter ends, Bit takes a nap and the player does two short tasks alone, with no hints: the weakest concepts taught so far, earliest first. Tasks set up their own files under `~/review` and check the end state, so any correct command counts, on the simulator or the real Linux. Results move skills more than a single command does. `skip` skips it.
+
 ## Real Linux (beta)
 
 Chapter 1 plays on a real Linux by default: Linux 6.12 with bash, booted inside the tab by the [v86](https://github.com/copy/v86) emulator. Nothing runs on a server. The first visit downloads about 11 MB and takes a few seconds; after that, every command, error and output is the real thing, and challenges are checked against the real files. When Chapter 1 is done, Chapter 2 picks up in the simulator, which plays the AI agent and its tools. The **Real Linux** button in the window's tab bar switches between the two, and the game remembers a player who chose the simulator. Players whose browser asks to save data, or who are already past Chapter 1, start in the simulator. How the image is built, and its licenses, are in [`vm/README.md`](vm/README.md).

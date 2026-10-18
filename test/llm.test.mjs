@@ -24,7 +24,7 @@ function fakeGateway(reply, status = 200) {
     return calls;
 }
 
-const SPRITE = { kind: 'sprite', event: 'error', chapter: 'The Stolen Treasure', challenge: 'Go into any directory from home', hint: "Type 'cd documents'", command: 'cd docs', output: 'cd: docs: No such file or directory', cwd: '~', level: 1 };
+const SPRITE = { kind: 'sprite', event: 'error', chapter: 'The Stolen Treasure', challenge: 'Go into any directory from home', allowed: "Use 'cd', then the right name after it.", command: 'cd docs', output: 'cd: docs: No such file or directory', cwd: '~', level: 1 };
 
 test('without a key it answers 503 so the page uses scripted lines', async () => {
     const res = await handleLlm(post(SPRITE), { ...ENV, CAIL_GATEWAY_API_KEY: undefined });
@@ -41,6 +41,15 @@ test('a sprite request reaches the gateway with the game facts and comes back as
     assert.equal(calls[0].body.model, 'deepseek-v4-flash-0731');
     assert.match(calls[0].body.messages[1].content, /Last command: cd docs/);
     assert.match(calls[0].body.messages[0].content, /You are Bit/);
+    assert.match(calls[0].body.messages[1].content, /What you may reveal: Use 'cd', then the right name/);
+    assert.doesNotMatch(calls[0].body.messages[1].content, /Official hint/);
+});
+
+test('the exact command reaches the model only when the page sends it at the top step', async () => {
+    const calls = fakeGateway('Type cd documents.');
+    await handleLlm(post({ ...SPRITE, event: 'hint', level: 5, allowed: "Type 'cd documents'", hint: "Type 'cd documents'" }), ENV);
+    assert.match(calls[0].body.messages[1].content, /Help step: 5 of 5/);
+    assert.match(calls[0].body.messages[1].content, /Official hint: Type 'cd documents'/);
 });
 
 test("an agent request carries the player's system prompt and knowledge base notes", async () => {

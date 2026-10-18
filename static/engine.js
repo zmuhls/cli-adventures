@@ -1894,6 +1894,7 @@ usage: agent COMMAND [options]
 
     CLIGame.HOME = HOME;
     CLIGame.CHAPTERS = CHAPTERS;
+    CLIGame.nodes = { dir, file };
     CLIGame.CLOUD_MODEL = CLOUD_MODEL;
     CLIGame.stripAnsi = stripAnsi;
     return CLIGame;

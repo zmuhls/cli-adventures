@@ -868,3 +868,23 @@ summary:hover { color: var(--green); }
     .bubble, .bubble::after { border-color: CanvasText; }
     progress { border: 1px solid CanvasText; }
 }
+
+/* Bit napping during a chapter review */
+.sprite[data-mood="sleep"] .sprite-button { opacity: 0.55; filter: grayscale(0.7); }
+.sprite[data-mood="sleep"]::before {
+    content: "z z";
+    position: absolute;
+    top: -14px;
+    right: 2px;
+    color: var(--muted);
+    font: 500 var(--fs-label)/1 var(--font-ui);
+    letter-spacing: 0.2em;
+}
+.line.is-review { margin-top: 12px; color: var(--cyan); }
+.line.is-review-task { color: var(--text); }
+.line.is-review-task::before { content: "▸ "; color: var(--cyan); }
+
+.skill-list { display: grid; gap: 8px; margin: 4px 0 8px; padding: 0 18px; list-style: none; font-size: var(--fs-small); }
+.skill { display: grid; grid-template-columns: minmax(0, 1fr) 64px 84px; align-items: center; gap: 10px; }
+.skill meter { width: 100%; height: 8px; }
+.skill-band { color: var(--muted); font-size: var(--fs-label); }
