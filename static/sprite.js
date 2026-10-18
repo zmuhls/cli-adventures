@@ -28,13 +28,14 @@ const BitSprite = (() => {
 
     // 'quoted' commands, but not the apostrophes in words like you're
     const QUOTED = /(?<=^|[\s(])'([^'\n]+?)'(?=[\s.,;:!?)]|$)/g;
-    const stripAnsi = text => text.replace(/\u001b\[\d+m/g, '');
+    const stripAnsi = text => text.replace(/\u001b\[[\d;]*m/g, '');
 
     const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const pick = list => list[Math.floor(Math.random() * list.length)];
 
-    function create({ root, button, bubble, text, live, closeButton, canvas, ask, context, onLayout }) {
+    function create({ root, button, bubble, text, live, closeButton, canvas, ask, ladder, context, onLayout }) {
         let enabled = true;
+        let asleep = false;
         let hideTimer = null;
         let moodTimer = null;
         let idleTimer = null;
@@ -44,7 +45,7 @@ const BitSprite = (() => {
         function setMood(mood, hold = 2400) {
             root.dataset.mood = mood;
             clearTimeout(moodTimer);
-            if (mood !== 'idle') moodTimer = setTimeout(() => { root.dataset.mood = 'idle'; }, hold);
+            if (mood !== 'idle') moodTimer = setTimeout(() => { root.dataset.mood = asleep ? 'sleep' : 'idle'; }, hold);
         }
 
         function animate(name) {
@@ -102,8 +103,9 @@ const BitSprite = (() => {
             scheduleHide(hold);
         }
 
-        // Ask the model for a line, showing dots meanwhile; fall back to the scripted line
-        async function sayFromModel(payload, fallback, options) {
+        // Ask the model for a line, showing dots meanwhile; fall back to the scripted line,
+        // also when the reply says more than this step allows
+        async function sayFromModel(payload, fallback, options, accept = () => true) {
             if (!enabled) return;
             const mine = ++request;
             bubble.classList.add('is-thinking');
@@ -113,12 +115,12 @@ const BitSprite = (() => {
             clearTimeout(hideTimer);
             const reply = await ask(payload);
             if (mine !== request) return;
-            say(reply || fallback, options);
+            say(reply && accept(reply) ? reply : fallback, options);
         }
 
         function payload(event, extra = {}) {
             const ctx = context();
-            return { kind: 'sprite', event, chapter: ctx.chapter, challenge: ctx.challenge, hint: ctx.hint, cwd: ctx.cwd, ...extra };
+            return { kind: 'sprite', event, chapter: ctx.chapter, challenge: ctx.challenge, cwd: ctx.cwd, ...extra };
         }
 
         function track() {
@@ -126,13 +128,17 @@ const BitSprite = (() => {
             if (streak.id !== id) streak = { id, errors: 0, hints: 0, nudged: false };
         }
 
+        // One step up the hint ladder; the coach decides how far Bit may go
         function hint() {
             track();
+            if (asleep) {
+                say("Zzz… I'm napping while you try these on your own. You've got this!", { mood: 'sleep', hold: 5000 });
+                return;
+            }
             streak.hints++;
-            const ctx = context();
-            const level = Math.min(3, streak.hints);
-            const fallback = level === 1 ? `Hint: ${ctx.hint}` : `${ctx.hint} Type it exactly like that, then press Enter.`;
-            sayFromModel(payload('hint', { level }), fallback, { mood: 'idle', hold: 14000 });
+            const h = ladder.next();
+            sayFromModel(payload('hint', { level: h.level, allowed: h.text, hint: h.reveal }), h.text, { mood: 'idle', hold: 14000 },
+                reply => !ladder.leaks(reply, h.level));
         }
 
         function confetti(big) {
@@ -184,6 +190,11 @@ const BitSprite = (() => {
         // React to one command's result from the engine
         function react(result, command) {
             track();
+            if (asleep) {
+                if (result.completed.length) animate('is-jumping');
+                else if (result.error) animate('is-shaking');
+                return;
+            }
             if (result.gameComplete) {
                 animate('is-jumping');
                 say("You did it! Every adventure, done. You're a real command-line agent now.", { mood: 'happy', hold: 16000 });
@@ -213,15 +224,18 @@ const BitSprite = (() => {
             if (code === 'unknown_command' && result.events[0] && result.events[0].meta.suggestion) {
                 fallback = `I don't know '${result.error.cmd}'. Did you mean '${result.events[0].meta.suggestion}'?`;
             }
-            if (streak.errors >= 3) fallback = `Tricky one! ${context().hint}`;
+            const step = ladder.onError();
+            if (!ERROR_LINES[code] && code !== 'unknown_command') fallback = `Not quite. ${step.text}`;
+            if (streak.errors >= 3) fallback = `Tricky one! ${step.text} Click me for more.`;
             if (code === 'no_match' || code === 'guarded' || code === 'unsafe') {
                 say(fallback, { mood: 'worried' });
                 return;
             }
             sayFromModel(
-                payload(streak.errors >= 3 ? 'stuck' : 'error', { command, output: stripAnsi(result.output).slice(0, 600), level: streak.errors >= 2 ? 2 : 1 }),
+                payload(streak.errors >= 3 ? 'stuck' : 'error', { command, output: stripAnsi(result.output).slice(0, 600), level: step.level, allowed: step.text }),
                 fallback,
                 { mood: 'worried', hold: 11000 },
+                reply => !ladder.leaks(reply, step.level),
             );
         }
 
@@ -250,6 +264,13 @@ const BitSprite = (() => {
 
         return {
             say, react, hint, confetti, activity, hide,
+            // During a chapter review Bit naps: no hints, no model calls
+            setAsleep(on) {
+                asleep = on;
+                root.dataset.mood = on ? 'sleep' : 'idle';
+                button.setAttribute('aria-label', on ? 'Bit is napping during the review' : 'Ask Bit for a hint');
+                if (on) hide();
+            },
             setEnabled(on) {
                 enabled = on;
                 root.hidden = !on;

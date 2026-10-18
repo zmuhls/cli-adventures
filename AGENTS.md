@@ -24,6 +24,7 @@ The arcade installation deploys directly to Cloudflare Workers at https://cli-ad
 - `src/llm.ts` — Bit's lines and the in-game agent's cloud answers through the CAIL gateway
 - `index.html` — main game page
 - `static/engine.js` — game engine (`CLIGame`: virtual filesystem, shell, commands, chapters and challenges)
+- `static/coach.js` — what the game knows about the player (`Coach`): skills per concept, the hint ladder and its cap, the hint log, and the end-of-chapter review tasks
 - `static/sprite.js` — Bit, the sprite by the prompt (bubbles, hints, jump, confetti)
 - `static/game.js` — page controller (terminal window, sidebar, saves, keyboard handling)
 - `static/realterm.js` — the real terminal adapter (`RealTerminal`): the v86 backend, and a stub for the lab sandbox service
@@ -39,5 +40,6 @@ The arcade installation deploys directly to Cloudflare Workers at https://cli-ad
 - The Worker exports a fetch handler; production bindings are declared in wrangler.jsonc.
 - Keep the project small and editable.
 - Challenge checks read game state and the commands the player ran, never model output, so the game plays the same with or without `/api/llm`.
+- How much a hint may reveal is decided in `coach.js` from trusted state (errors, time, skills), never from what the player types, and never by the model. Only the top step sends the exact command to the model.
 - Real-terminal checks run shell tests in the VM (`probe`) or read the command, exit code and cwd; they never parse model output either.
 - A new chapter needs `setup` (adds its files), `solve` (its end state, used when a later chapter is started directly) and challenges; add its commands to the `COMMANDS` reference and a walkthrough to `test/engine.test.mjs`.

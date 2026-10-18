@@ -141,11 +141,17 @@
                 <div id="commandGroups"></div>
             </details>
             <details class="ref-group">
+                <summary>Your skills</summary>
+                <p class="ref-note">From what your commands did, in the order the chapters teach them.</p>
+                <ul class="skill-list" id="skillList"></ul>
+                <p class="ref-note" id="hintSummary"></p>
+            </details>
+            <details class="ref-group">
                 <summary>Tips</summary>
                 <ul class="tips-list">
-                    <li>Click Bit, the little sprite by the prompt, for a hint. Click again for a bigger one.</li>
+                    <li>Click Bit, the little sprite by the prompt, for a hint. Each click gives a little more, up to the exact command when you have been stuck a while.</li>
                     <li>Press <kbd>↑</kbd> and <kbd>↓</kbd> to bring back earlier commands. <kbd>Tab</kbd> finishes names; on an empty prompt it moves focus on.</li>
-                    <li>Purple names ending in <code>/</code> are directories. Names that start with a dot are hidden; <code>ls -a</code> shows them.</li>
+                    <li>Names ending in <code>/</code> are directories. Names that start with a dot are hidden; <code>ls -a</code> shows them.</li>
                     <li><code>~</code> is short for your home directory, <code>/home/fsociety</code>.</li>
                     <li>When the agent asks <code>allow? [y/n]</code>, read exactly what it wants to run before you answer.</li>
                     <li><kbd>Ctrl</kbd> + <kbd>L</kbd> clears the screen. <code>reset</code> restarts the chapter.</li>
@@ -163,6 +169,7 @@
     <canvas class="confetti" id="confetti" aria-hidden="true" hidden></canvas>
 
     <script src="static/engine.js"></script>
+    <script src="static/coach.js"></script>
     <script src="static/sprite.js"></script>
     <script src="static/realterm.js"></script>
     <script src="static/realchapters.js"></script>

@@ -15,7 +15,7 @@ const TIMEOUT_MS = 12_000;
 // Every field the page may send, with its length cap
 const LIMITS = {
   event: 20, chapter: 80, challenge: 240, hint: 300, command: 200, output: 600, cwd: 120,
-  question: 300, system: 600, context: 1_800,
+  question: 300, system: 600, context: 1_800, allowed: 300,
 } as const;
 type Field = keyof typeof LIMITS;
 
@@ -30,7 +30,8 @@ You speak in one short speech bubble: one or two sentences, at most 30 words, pl
 Be warm and a little playful, never sarcastic or condescending.
 Put commands in single quotes, like 'ls'.
 Use only the facts you are given. Do not invent files, folders, commands or flags.
-At hint level 1, nudge without giving the whole command. At level 2 or higher, give the exact command from the official hint.`;
+Help comes in steps from 0 (encourage) to 5 (the exact command). Say only what "What you may reveal" allows, in your own words.
+Give an exact command with its arguments only when an official hint is provided.`;
 
 const AGENT_SYSTEM = `You are "agent", a command-line AI assistant inside a game that teaches people how AI agents work.
 Reply in plain text, at most three short sentences, no markdown.
@@ -56,15 +57,18 @@ export function buildRequest(body: unknown): { messages: Message[]; maxTokens: n
   if (b.kind === 'sprite') {
     const event = field(b, 'event');
     if (!Object.hasOwn(SPRITE_EVENTS, event)) return null;
-    const level = Math.min(3, Math.max(1, Number(b.level) || 1));
+    const level = Math.min(5, Math.max(0, Number(b.level) || 0));
     const facts = [
       `Situation: ${SPRITE_EVENTS[event]}`,
       `Chapter: ${field(b, 'chapter')}`,
       `Current challenge: ${field(b, 'challenge')}`,
-      `Official hint: ${field(b, 'hint')}`,
       `Current directory: ${field(b, 'cwd')}`,
-      `Hint level: ${level}`,
+      `Help step: ${level} of 5`,
+      `What you may reveal: ${field(b, 'allowed') || 'Encouragement only.'}`,
     ];
+    // The page sends the exact command only at the top step; below it the model never sees it
+    const hint = field(b, 'hint');
+    if (hint) facts.push(`Official hint: ${hint}`);
     const command = field(b, 'command');
     if (command) facts.push(`Last command: ${command}`, `Terminal output:\n${field(b, 'output')}`);
     return {

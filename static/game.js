@@ -14,6 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const challengeText = $('currentChallenge');
     const hintText = $('challengeHint');
     const lessonList = $('lessonList');
+    const skillList = $('skillList');
+    const hintSummary = $('hintSummary');
     const chapterList = $('chapterList');
     const commandGroups = $('commandGroups');
     const terminalWindow = $('terminalWindow');
@@ -24,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const SAVE_KEY = 'cli-adventures-save-v2';
     const BIT_KEY = 'cli-adventures-bit';
     const MODE_KEY = 'cli-adventures-mode';
+    const COACH_KEY = 'cli-adventures-coach-v1';
     const ANSI_CLASSES = { '31': 'ansi-err', '32': 'ansi-ok', '33': 'ansi-warn', '34': 'ansi-dir', '35': 'ansi-file', '36': 'ansi-agent', '90': 'ansi-dim' };
     const PLACEHOLDERS = new Set(['file', 'dir', 'path', 'src', 'dst', 'program', 'word', 'PID', 'URL', 'NAME=value', 'file.zip', 'script.sh', 'command']);
 
@@ -47,6 +50,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let real = null;
     let realMode = false;
     let booting = false;
+    // What the game knows about the player (coach.js): skills, the hint ladder, the review
+    const coach = Coach.create(storage.get(COACH_KEY));
+    const saveCoach = () => storage.set(COACH_KEY, coach.serialize());
+    let review = null;
     const view = () => (realMode ? real : game);
 
     // ---------- Rendering ----------
@@ -148,6 +155,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return { chapter: c.chapter, challenge: c.text, hint: c.hint, cwd: view().getPath(), challengeId: `${realMode ? 'real' : ''}${c.chapterIndex}:${c.id || 'done'}` };
     }
 
+    const coachContext = () => ({ ...context(), now: Date.now() });
+    const ladder = {
+        next: () => coach.nextHint(coachContext()),
+        onError: () => coach.errorHint(coachContext()),
+        leaks: (reply, level) => coach.leaks(reply, coachContext(), level),
+    };
+
     const bit = BitSprite.create({
         root: $('sprite'),
         button: $('spriteButton'),
@@ -157,6 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
         closeButton: $('bubbleClose'),
         canvas: $('confetti'),
         ask: llm,
+        ladder,
         context,
         onLayout: () => scrollToEnd(),
     });
@@ -190,6 +205,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateChallenge() {
+        if (review) {
+            const t = review.tasks[review.i];
+            chapterLabel.textContent = `Review · ${t.label} · Bit is napping`;
+            stepCount.textContent = `${review.i + 1} of ${review.tasks.length}`;
+            progressBar.max = review.tasks.length;
+            progressBar.value = review.i;
+            progressBar.textContent = `${review.i} of ${review.tasks.length}`;
+            challengeText.textContent = t.text;
+            hintText.textContent = "No hints in the review: it shows what stuck. Type skip to skip it.";
+            statusChallenge.textContent = `Review ${review.i + 1}/${review.tasks.length}: ${t.text}`;
+            return;
+        }
         const c = view().currentChallenge();
         chapterLabel.textContent = `Chapter ${c.chapterIndex + 1} of ${c.chapters} · ${c.chapter}`;
         stepCount.textContent = c.done ? 'all done' : `${c.index + 1} of ${c.total}`;
@@ -273,6 +300,97 @@ document.addEventListener('DOMContentLoaded', () => {
         updateChallenge();
         renderChapters();
         renderReference();
+        renderSkills();
+    }
+
+    // Skills for the concepts taught so far, in teaching order, and how hints were used
+    function renderSkills() {
+        const chapter = realMode ? 0 : game.reached();
+        skillList.replaceChildren(...coach.skills(chapter).map(k => {
+            const item = element('li', 'skill');
+            const meter = document.createElement('meter');
+            meter.min = 0; meter.max = 1; meter.low = 0.45; meter.high = 0.75; meter.optimum = 1; meter.value = k.p;
+            meter.setAttribute('aria-label', `${k.label}: ${k.band}`);
+            item.append(element('span', 'skill-label', k.label), meter, element('span', 'skill-band', k.band));
+            return item;
+        }));
+        const h = coach.hintStats();
+        hintSummary.textContent = h.shown ? `Hints: ${h.shown} shown, ${h.used} acted on, ${h.worked} worked.` : 'No hints used yet.';
+    }
+
+    // Track one command's result: skills, the challenge's errors, and whether a hint was used
+    function observe(before, command, ok, completed) {
+        coach.observe({ line: command, ok, completed, challengeId: before.challengeId, hint: before.hint, now: Date.now() });
+        saveCoach();
+    }
+
+    // ---------- Review: Bit naps, the player tries two tasks alone ----------
+
+    // The same small file interface for the simulator and the real Linux
+    function simIO() {
+        const { dir, file } = CLIGame.nodes;
+        return {
+            mkdir: p => { if (!game.isDir(p)) game.put(p, dir(), true); },
+            write: (p, text, mode) => { game.put(p, file(text, mode ? { mode } : {}), true); },
+            isFile: p => game.isFile(p),
+            read: p => game.read(p),
+            mode: p => { const n = game.get(p); return n ? (n.mode & 0o777).toString(8) : ''; },
+            env: name => game.s.env[name] || '',
+            cwd: () => game.cwd(),
+        };
+    }
+
+    function realIO() {
+        const b = real.backend;
+        const at = p => p.replace(/^~/, '"$HOME"');
+        return {
+            mkdir: p => b.script(`mkdir -p ${at(p)}`),
+            write: (p, text, mode) => b.script(`mkdir -p "$(dirname ${at(p)})" && printf %s ${RealTerminal.toBase64(text)} | base64 -d > ${at(p)}${mode ? ` && chmod ${mode.toString(8)} ${at(p)}` : ''}`),
+            isFile: p => b.probe(`test -f ${at(p)}`),
+            read: async p => (await b.script(`cat ${at(p)} 2>/dev/null`)).stdout,
+            mode: async p => (await b.script(`stat -c %a ${at(p)} 2>/dev/null`)).stdout.trim(),
+            env: async () => '',
+            cwd: () => real.cwd(),
+        };
+    }
+
+    async function startReview(chapter, then) {
+        const tasks = coach.pickReview(chapter, realMode ? 'real' : 'sim');
+        if (!tasks.length) { then(); return; }
+        const io = realMode ? realIO() : simIO();
+        for (const t of tasks) await t.setup(io);
+        review = { tasks, i: 0, io, then, chapter };
+        bit.setAsleep(true);
+        print(`Bit is taking a nap. Before the next chapter, ${tasks.length === 1 ? 'one quick task' : `${tasks.length} quick tasks`} on your own, with no hints: they show what stuck. Type skip to skip.`, 'is-review');
+        print(`Review 1: ${tasks[0].text}`, 'is-review-task');
+        refresh();
+        scrollToEnd();
+    }
+
+    async function checkReview() {
+        const t = review.tasks[review.i];
+        if (!(await t.check(review.io))) return;
+        coach.recordReview(t.concept, true, review.chapter);
+        saveCoach();
+        print(`✓ Review task done: ${t.label}`, 'is-win');
+        review.i++;
+        if (review.i < review.tasks.length) print(`Review ${review.i + 1}: ${review.tasks[review.i].text}`, 'is-review-task');
+        else endReview(false);
+    }
+
+    function endReview(skipped) {
+        const { then } = review;
+        review = null;
+        bit.setAsleep(false);
+        if (skipped) print('Review skipped. It will be there at the end of the next chapter.', 'is-note');
+        else {
+            print('Review done, all on your own.', 'is-chapter-done');
+            bit.say('*yawn* I\'m awake! You did those without me. Nice!', { mood: 'happy', hold: 6000 });
+            bit.confetti(false);
+        }
+        then();
+        refresh();
+        scrollToEnd();
     }
 
     function save() {
@@ -282,6 +400,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ---------- Commands ----------
 
     async function runReal(command) {
+        const before = context();
         echo(command);
         scrollToEnd();
         input.setAttribute('aria-busy', 'true');
@@ -301,9 +420,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         for (const c of r.completed) print(`✓ Challenge completed: ${c.text}`, 'is-win');
         const chapterComplete = r.done && r.completed.length ? { title: real.currentChallenge().chapter, outro: 'You did it on a real Linux. Every command was the real thing.' } : null;
+        observe(before, command, r.code === 0, r.completed.length > 0);
         if (chapterComplete) {
             print(`★ Chapter complete: ${chapterComplete.title}. ${chapterComplete.outro}`, 'is-chapter-done');
-            setTimeout(handOff, 2500);
+            setTimeout(() => startReview(0, handOff), 2500);
         }
         else if (r.completed.length) print(`Next: ${real.currentChallenge().text}`, 'is-note');
         bit.react({
@@ -311,23 +431,36 @@ document.addEventListener('DOMContentLoaded', () => {
             error: r.code === 0 ? null : { cmd: command.trim().split(/\s+/)[0], code: 'real', message: r.stderr },
             output: r.stdout + r.stderr, events: [{ meta: {} }],
         }, command);
+        if (review) await checkReview();
         refresh();
         scrollToEnd();
     }
 
-    function run(command) {
+    async function run(command) {
+        if (review && /^skip$/i.test(command.trim())) {
+            echo(command);
+            endReview(true);
+            return;
+        }
         if (realMode) return runReal(command);
+        const before = context();
         echo(command);
         const r = game.run(command);
+        observe(before, command, !r.error, r.completed.length > 0);
         if (r.clear) output.replaceChildren();
         if (r.output) print(r.output);
         for (const c of r.completed) print(`✓ Challenge completed: ${c.text}`, 'is-win');
         if (r.chapterComplete) print(`★ Chapter complete: ${r.chapterComplete.title}. ${r.chapterComplete.outro}`, 'is-chapter-done');
         if (r.gameComplete) print('★ ★ ★  Every adventure is complete. Thanks for playing, agent.', 'is-chapter-done');
-        if (r.chapterStarted) chapterIntro(r.chapterStarted);
+        // A finished chapter ends with the review; the next chapter's intro waits for it
+        if (r.chapterComplete) {
+            const started = r.chapterStarted;
+            setTimeout(() => startReview(r.chapterComplete.index, () => { if (started) chapterIntro(started); }), 1500);
+        } else if (r.chapterStarted) chapterIntro(r.chapterStarted);
         else if (r.completed.length && !r.gameComplete) print(`Next: ${game.currentChallenge().text}`, 'is-note');
         for (const effect of r.effects) if (effect.type === 'llm') runAgent(effect);
         bit.react(r, command);
+        if (review) await checkReview();
         refresh();
         save();
         scrollToEnd();
@@ -557,6 +690,7 @@ document.addEventListener('DOMContentLoaded', () => {
         bit.say(resumed ? 'Welcome back! Click me any time for a hint.' : "Hi, I'm Bit! Click me any time you'd like a hint.", { mood: 'happy', hold: 6000 });
     }, 900);
     form.addEventListener('submit', () => clearTimeout(greeting), { once: true });
+    $('spriteButton').addEventListener('click', () => clearTimeout(greeting), { once: true });
     if (realByDefault()) enterReal({ auto: true });
     // Jump straight to the prompt where a keyboard is likely; on touch screens wait for a tap
     if (window.matchMedia('(pointer: fine)').matches) {
