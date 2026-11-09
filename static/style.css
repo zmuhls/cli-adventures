@@ -510,6 +510,11 @@ a.tab:focus-visible { outline-offset: -2px; }
     transform: rotate(45deg);
 }
 .bubble-name { color: var(--green); font-size: var(--fs-label); letter-spacing: 0.08em; text-transform: uppercase; }
+.bubble[data-source="model"] .bubble-name { color: var(--cyan); }
+.line-choice { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; }
+.line-choice .text-button { min-height: 32px; }
+.line-source { color: var(--muted); }
+#saveStatus[data-kind="error"], #saveStatus[data-kind="conflict"], #saveStatus[data-kind="expired"] { color: var(--text); }
 .bubble-text code {
     padding: 1px 5px;
     border-radius: 4px;

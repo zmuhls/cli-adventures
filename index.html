@@ -14,7 +14,7 @@
 </head>
 <body>
     <a class="skip-link" href="#commandInput">Skip to the command prompt</a>
-    <nav class="suite-nav suite-nav-dark" aria-label="CUNY account"><div class="suite-nav-links"><a class="suite-nav-button" href="https://games.ailab-452.workers.dev/">Games</a><a class="suite-nav-button" href="https://tools.ailab.gc.cuny.edu/my-work/">CUNY Login</a></div></nav>
+    <nav class="suite-nav suite-nav-dark" aria-label="CUNY account"><div class="suite-nav-links"><a class="suite-nav-button" href="https://games.ailab-452.workers.dev/">Games</a><a class="suite-nav-button" id="accountLink" href="https://tools.ailab.gc.cuny.edu/my-work/">CUNY Login</a></div></nav>
 
     <header class="page-header">
         <h1>CLI Adventures <span class="badge">Beta</span></h1>
@@ -75,7 +75,7 @@
                 </form>
                 <div class="sprite" id="sprite" data-mood="idle">
                     <div class="bubble" id="bubble" hidden>
-                        <p class="bubble-name" aria-hidden="true">Bit</p>
+                        <p class="bubble-name" id="bubbleName" aria-hidden="true">Bit</p>
                         <p class="bubble-text" id="bubbleText"></p>
                         <button class="bubble-close" id="bubbleClose" type="button" aria-label="Close Bit's message">
                             <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M4 4l8 8M12 4l-8 8"/></svg>
@@ -150,6 +150,7 @@
                 <summary>Tips</summary>
                 <ul class="tips-list">
                     <li>Click Bit, the little sprite by the prompt, for a hint. Each click gives a little more, up to the exact command when you have been stuck a while.</li>
+                    <li>A language model words some of Bit’s lines and the agent’s cloud answers; those are marked <strong>AI-worded</strong>. The game’s rules, not the model, decide what a hint may reveal and when a challenge is done.</li>
                     <li>Press <kbd>↑</kbd> and <kbd>↓</kbd> to bring back earlier commands. <kbd>Tab</kbd> finishes names; on an empty prompt it moves focus on.</li>
                     <li>Names ending in <code>/</code> are directories. Names that start with a dot are hidden; <code>ls -a</code> shows them.</li>
                     <li><code>~</code> is short for your home directory, <code>/home/fsociety</code>.</li>
@@ -161,7 +162,10 @@
             <div class="ref-footer">
                 <label class="toggle"><input type="checkbox" id="bitToggle" checked> Bit gives tips</label>
                 <button class="text-button" id="startOver" type="button">Start over</button>
-                <p>Beta. Progress is saved in this browser. <a href="https://github.com/zmuhls/cli-adventures" target="_blank" rel="noopener">Report a bug or contribute<span class="visually-hidden"> (opens in a new tab)</span></a></p>
+                <p id="saveStatus" role="status">Progress is saved in this browser.</p>
+                <button class="text-button" id="saveRetry" type="button" hidden>Retry saving</button>
+                <button class="text-button" id="signOut" type="button" hidden>Sign out</button>
+                <p>Beta. <a href="https://github.com/zmuhls/cli-adventures" target="_blank" rel="noopener">Report a bug or contribute<span class="visually-hidden"> (opens in a new tab)</span></a></p>
             </div>
         </aside>
     </main>
@@ -173,6 +177,7 @@
     <script src="static/sprite.js"></script>
     <script src="static/realterm.js"></script>
     <script src="static/realchapters.js"></script>
+    <script src="static/cloud.js"></script>
     <script src="static/game.js"></script>
 </body>
 </html>

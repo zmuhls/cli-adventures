@@ -11,13 +11,24 @@ A browser game that teaches the command line, then uses it to teach how AI agent
 5. **Standing Orders**: list the agent's tools, write a system prompt with `>` and `>>`, write a skill, grant a tool with approval, and run the skill
 6. **Ghost in the Downloads**: find a cryptominer with `ps`, unmask a fake invoice with `file`, survive a prompt injection hidden in it, `kill` the process, remove its `crontab` persistence and hidden copy, and rotate the leaked key
 
-Chapters unlock in order and can be replayed from the sidebar. Progress is saved in the browser.
+Chapters unlock in order and can be replayed from the sidebar. Progress is saved in the browser, and on the player's CUNY account after CUNY Login (see Saved progress).
 
 ## Bit, the sprite
 
 Bit sits next to the prompt. It jumps when you complete a challenge, looks worried and explains when a command fails, gives a hint (then a bigger one) when clicked, and throws confetti when a chapter or the whole game is done. It can be switched off in the sidebar, and it stays still when the system asks for reduced motion.
 
 When the Worker has a gateway key, Bit's lines and the in-game agent's cloud answers come from a fast language model (DeepSeek V4 Flash through the CUNY AI Lab gateway). Otherwise both use scripted lines. Challenges never depend on what the model says, so the game plays the same either way. The local model in Chapter 3 is simulated and never makes a network call, which matches what the game tells players.
+
+Lines a language model wrote are marked: Bit's bubble reads **Bit · AI-worded**, and the agent's cloud answer ends with a note saying a model wrote it. Scripted stand-ins say why they appeared (model not connected, busy, or no answer). Each model request is made once and never retried. Clicking Bit again while a hint is on its way does nothing; a newer line cancels an older request. After a rate limit, or three failures in a row, the game uses scripted lines for a minute or two before asking again.
+
+## Saved progress
+
+The browser save is the working copy; the game never waits on the network. On the arcade Worker, **CUNY Login** signs the player in on this origin (Doorway's private `WorkerIdentity` binding, PKCE, an opaque HttpOnly session cookie) and `static/cloud.js` keeps one saved item for them in the Lab's shared My work store (`cail-work-accounts`, app `cli-adventures`, kind `progress`). The Worker forwards only `GET`/`PUT /api/work/entries[/id]`, with the identity taken from the session; the store decides ownership.
+
+- Signing in with existing browser progress uploads it. A fresh browser takes the account copy.
+- If the account copy changed somewhere else and this browser also has progress, the terminal asks which to keep. Nothing is merged or overwritten unasked.
+- A failed save retries after 2, 8 and 30 seconds, then stops and shows **Retry saving**. An ended sign-in says so; play and the browser save continue.
+- Chapter 1 on the real Linux is not saved until the chapter is done, as before.
 
 ## How the game adapts
 
@@ -62,7 +73,7 @@ To turn the language model on, give the Worker an app key (`sk-cail-…`) from t
 npx wrangler secret put CAIL_GATEWAY_API_KEY
 ```
 
-The gateway address and model are the `CAIL_GATEWAY_URL` and `LLM_MODEL` vars in `wrangler.jsonc` (`deepseek-v4-flash-0731` by default). `/api/llm` only accepts the game's own requests: same-origin, capped input lengths, short replies, and at most 20 requests a minute per visitor (the `LLM_LIMITER` binding). Without the secret it answers 503 and the page uses its scripted lines. For local development, put the key in `.dev.vars`.
+The gateway address and model are the `CAIL_GATEWAY_URL` and `LLM_MODEL` vars in `wrangler.jsonc` (`deepseek-v4-flash-0731` by default). `/api/llm` only accepts the game's own requests: same-origin (cross-site browser requests are refused), capped input lengths, short replies, and at most 20 requests a minute per visitor (the `LLM_LIMITER` binding). Without the secret it answers 503 and the page uses its scripted lines. For local development, put the key in `.dev.vars`.
 
 ### Static hosting
 
@@ -72,7 +83,7 @@ The gateway address and model are the `CAIL_GATEWAY_URL` and `LLM_MODEL` vars in
 
 - Frontend: HTML, CSS, JavaScript. `static/engine.js` is the game (filesystem, shell, chapters), `static/sprite.js` is Bit, and `static/game.js` drives the page
 - Hosting: Cloudflare Worker (`src/index.ts`, with `src/llm.ts` for the model endpoint)
-- Tests: `npm test` plays every chapter through the engine and checks `/api/llm` against a fake gateway
+- Tests: `npm test` plays every chapter through the engine, checks `/api/llm` against a fake gateway, checks sign-in and the My work proxy against fake Doorway and store bindings, and checks account saves against a fake store
 
 ## License
 

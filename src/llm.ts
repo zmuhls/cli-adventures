@@ -105,6 +105,7 @@ export function cleanReply(text: unknown, maxChars: number): string {
 }
 
 function sameOrigin(request: Request): boolean {
+  if (request.headers.get('sec-fetch-site') === 'cross-site') return false;
   const origin = request.headers.get('origin');
   if (!origin) return true;
   try {
@@ -121,7 +122,7 @@ export async function handleLlm(request: Request, env: LlmEnv): Promise<Response
 
   if (env.LLM_LIMITER) {
     const { success } = await env.LLM_LIMITER.limit({ key: request.headers.get('cf-connecting-ip') ?? 'unknown' });
-    if (!success) return json({ error: 'rate_limited' }, 429);
+    if (!success) return json({ error: 'rate_limited' }, 429, { 'retry-after': '60' });
   }
 
   const raw = await request.text();
