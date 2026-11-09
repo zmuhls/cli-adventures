@@ -325,13 +325,14 @@ a.tab:focus-visible { outline-offset: -2px; }
 }
 
 .banner {
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     overflow: hidden;
     color: var(--green);
     line-height: 1.1;
     white-space: pre;
 }
-.banner-wide { font-size: clamp(4px, calc(100cqi / 67), 11px); }
+/* 112 columns: sized to fit beside the scrollbar, and capped so the title stays a title */
+.banner-wide { font-size: clamp(4px, calc(100cqi / 70), 8px); }
 .banner-narrow { display: none; font-size: 12px; }
 .banner-word {
     display: inline-block;

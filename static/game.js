@@ -121,10 +121,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function chapterIntro(started) {
         const box = element('div', 'line line-chapter');
-        box.append(
-            element('p', 'chapter-heading', `Chapter ${started.index + 1} · ${started.title}`),
-            element('p', '', started.intro),
-        );
+        box.append(element('p', 'chapter-heading', `Chapter ${started.index + 1} · ${started.title}`));
+        if (started.intro) box.append(element('p', '', started.intro));
         const first = element('p', 'chapter-first');
         first.append('First: ', renderQuoted(game.currentChallenge().text));
         box.append(first);
@@ -740,14 +738,15 @@ document.addEventListener('DOMContentLoaded', () => {
         realToggle.disabled = true;
         booting = true;
         if (!auto) output.replaceChildren();
-        if (!real) print('Starting a real Linux inside your browser (about 11 MB the first time)…', 'is-note');
+        // One line for the whole start-up: it is replaced, not added to, when Linux is ready
+        const starting = real ? null : print('Starting a real Linux in this tab (about 11 MB the first time)…', 'is-note');
         try {
             if (!real) {
                 const backend = new RealTerminal.V86Backend();
                 const { seconds } = await backend.boot();
                 real = new RealChapters.Game(backend, CLIGame.CHAPTERS);
                 await real.start();
-                print(`Linux is up in ${seconds.toFixed(1)} s. Everything you type runs in a real bash, on a real Linux kernel, in this tab.`, 'is-note');
+                starting.textContent = `Real Linux is ready (${seconds.toFixed(1)} s). Your commands run in a real bash, in this tab.`;
             }
             // Account progress restored during start-up may already be past Chapter 1
             if (auto && !realByDefault()) {
@@ -758,7 +757,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             realMode = true;
-            chapterIntro({ index: 0, title: real.currentChallenge().chapter, intro: 'Same mission, real machine: the files, errors and output are all genuine.' });
+            // On a first visit the line above already says it; the longer note is for switching over mid-game
+            chapterIntro({ index: 0, title: real.currentChallenge().chapter, intro: auto ? '' : 'Same mission, real machine: the files, errors and output are all genuine.' });
             if (!auto) bit.say("We're on a real Linux now! Same mission, real commands.", { mood: 'happy', hold: 6000 });
         } catch (err) {
             realToggle.setAttribute('aria-pressed', 'false');
