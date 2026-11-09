@@ -62,7 +62,7 @@ To turn the language model on, give the Worker an app key (`sk-cail-…`) from t
 npx wrangler secret put CAIL_GATEWAY_API_KEY
 ```
 
-The gateway address and model are the `CAIL_GATEWAY_URL` and `LLM_MODEL` vars in `wrangler.jsonc` (`deepseek-v4-flash-0731` by default). `/api/llm` only accepts the game's own requests: same-origin, capped input lengths, short replies, and at most 20 requests a minute per visitor (the `LLM_LIMITER` binding). Without the secret it answers 503 and the page uses its scripted lines. For local development, put the key in `.dev.vars`.
+The gateway address and model are the `CAIL_GATEWAY_URL` and `LLM_MODEL` vars in `wrangler.jsonc` (`deepseek-v4.1-flash-1017` by default). `/api/llm` only accepts the game's own requests: same-origin, capped input lengths, short replies, and at most 20 requests a minute per visitor (the `LLM_LIMITER` binding). Without the secret it answers 503 and the page uses its scripted lines. For local development, put the key in `.dev.vars`.
 
 ### Static hosting
 
