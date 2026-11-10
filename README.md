@@ -17,7 +17,7 @@ Chapters unlock in order and can be replayed from the sidebar. Progress is saved
 
 Bit sits next to the prompt. It jumps when you complete a challenge, looks worried and explains when a command fails, gives a hint (then a bigger one) when clicked, and throws confetti when a chapter or the whole game is done. It can be switched off in the sidebar, and it stays still when the system asks for reduced motion.
 
-When the Worker has a gateway key, Bit's lines and the in-game agent's cloud answers come from a fast language model (DeepSeek V4 Flash through the CUNY AI Lab gateway). Otherwise both use scripted lines. Challenges never depend on what the model says, so the game plays the same either way. The local model in Chapter 3 is simulated and never makes a network call, which matches what the game tells players.
+When the Worker has a gateway key, Bit's lines and the in-game agent's cloud answers come from a fast language model (DeepSeek V4.1 Flash through the CUNY AI Lab gateway). Otherwise both use scripted lines. Challenges never depend on what the model says, so the game plays the same either way. The local model in Chapter 3 is simulated and never makes a network call, which matches what the game tells players.
 
 Lines a language model wrote are marked: Bit's bubble reads **Bit · AI-worded**, and the agent's cloud answer ends with a note saying a model wrote it. Scripted stand-ins say why they appeared (model not connected, busy, or no answer). Each model request is made once and never retried. Clicking Bit again while a hint is on its way does nothing; a newer line cancels an older request. After a rate limit, or three failures in a row, the game uses scripted lines for a minute or two before asking again.
 
