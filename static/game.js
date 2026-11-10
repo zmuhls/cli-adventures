@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const BIT_KEY = 'cli-adventures-bit';
     const MODE_KEY = 'cli-adventures-mode';
     const COACH_KEY = 'cli-adventures-coach-v1';
+    const CLOUD_KEY = 'cli-adventures-account-v1';
     const ANSI_CLASSES = { '31': 'ansi-err', '32': 'ansi-ok', '33': 'ansi-warn', '34': 'ansi-dir', '35': 'ansi-file', '36': 'ansi-agent', '90': 'ansi-dim' };
     const PLACEHOLDERS = new Set(['file', 'dir', 'path', 'src', 'dst', 'program', 'word', 'PID', 'URL', 'NAME=value', 'file.zip', 'script.sh', 'command']);
 
@@ -45,13 +46,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let historyIndex = 0;
     let lastTabValue = null;
     let lastReached = -1;
+    // Why the last model call fell back to a scripted line: 'off', 'busy' or 'failed'
     let llmOff = false;
+    let llmReason = '';
+    let llmFailures = 0;
+    let llmRestUntil = 0;
     // Real terminal: Linux in the browser (realterm.js), playing realchapters.js
     let real = null;
     let realMode = false;
     let booting = false;
     // What the game knows about the player (coach.js): skills, the hint ladder, the review
-    const coach = Coach.create(storage.get(COACH_KEY));
+    let coach = Coach.create(storage.get(COACH_KEY));
     const saveCoach = () => storage.set(COACH_KEY, coach.serialize());
     let review = null;
     const view = () => (realMode ? real : game);
@@ -116,13 +121,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function chapterIntro(started) {
         const box = element('div', 'line line-chapter');
-        box.append(
-            element('p', 'chapter-heading', `Chapter ${started.index + 1} · ${started.title}`),
-            element('p', '', started.intro),
-        );
-        const first = element('p', 'chapter-first');
-        first.append('First: ', renderQuoted(game.currentChallenge().text));
-        box.append(first);
+        box.append(element('p', 'chapter-heading', `Chapter ${started.index + 1} · ${started.title}`));
+        if (started.intro) box.append(element('p', '', started.intro));
+        // What to do first is in the challenge panel; it is not repeated here
         output.append(box);
     }
 
@@ -132,20 +133,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ---------- Model calls (through the Worker; null means "use the scripted line") ----------
 
-    async function llm(payload) {
-        if (llmOff) return null;
+    // One bounded attempt, never retried: a scripted line always stands in. After a rate
+    // limit or three failures in a row the model rests, so play is not slowed by waiting.
+    async function llm(payload, signal) {
+        if (llmOff) { llmReason = 'off'; return null; }
+        if (Date.now() < llmRestUntil) { llmReason = 'busy'; return null; }
+        const timeout = AbortSignal.timeout(14000);
         try {
             const res = await fetch('/api/llm', {
                 method: 'POST',
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify(payload),
-                signal: AbortSignal.timeout(14000),
+                signal: signal && AbortSignal.any ? AbortSignal.any([signal, timeout]) : timeout,
             });
-            if ([404, 405, 501, 503].includes(res.status)) { llmOff = true; return null; }
-            if (!res.ok) return null;
+            if ([404, 405, 501, 503].includes(res.status)) { llmOff = true; llmReason = 'off'; return null; }
+            if (res.status === 429) {
+                const wait = Number(res.headers.get('retry-after')) || 60;
+                llmRestUntil = Date.now() + Math.min(300, Math.max(10, wait)) * 1000;
+                llmReason = 'busy';
+                return null;
+            }
+            if (!res.ok) throw new Error('model failed');
             const data = await res.json();
-            return typeof data.text === 'string' && data.text.trim() ? data.text.trim() : null;
+            const text = typeof data.text === 'string' ? data.text.trim() : '';
+            if (!text) throw new Error('empty reply');
+            llmFailures = 0;
+            llmReason = '';
+            return text;
         } catch (_) {
+            // A line that was replaced by a newer one is not a failure
+            if (signal && signal.aborted) { llmReason = ''; return null; }
+            llmReason = 'failed';
+            if (++llmFailures >= 3) { llmFailures = 0; llmRestUntil = Date.now() + 120000; }
             return null;
         }
     }
@@ -168,6 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
         bubble: $('bubble'),
         text: $('bubbleText'),
         live: $('bitLive'),
+        name: $('bubbleName'),
         closeButton: $('bubbleClose'),
         canvas: $('confetti'),
         ask: llm,
@@ -176,21 +196,31 @@ document.addEventListener('DOMContentLoaded', () => {
         onLayout: () => scrollToEnd(),
     });
 
-    async function runAgent(effect) {
+    const SCRIPTED_NOTE = {
+        off: '  (scripted reply: the model is not connected)',
+        busy: '  (scripted reply: the model is busy; try again in a minute)',
+        failed: '  (scripted reply: the model did not answer)',
+    };
+    // Cloud answers run one at a time, so a burst of commands cannot stack model calls
+    let agentQueue = Promise.resolve();
+
+    function runAgent(effect) {
         const label = () => element('span', 'ansi-agent', 'agent › ');
         const line = print('', 'line-agent is-thinking');
         line.append(label(), 'thinking…');
         scrollToEnd();
-        const reply = await llm({ kind: 'agent', ...effect.payload });
-        line.classList.remove('is-thinking');
-        line.replaceChildren(label(), reply || effect.fallback);
-        if (!reply) line.append(element('span', 'ansi-dim', '  (scripted reply: the model is not connected)'));
-        if (effect.sources) {
-            const sources = element('div', 'line');
-            sources.append(renderAnsi(effect.sources));
-            line.after(sources);
-        }
-        scrollToEnd();
+        agentQueue = agentQueue.then(async () => {
+            const reply = await llm({ kind: 'agent', ...effect.payload });
+            line.classList.remove('is-thinking');
+            line.replaceChildren(label(), reply || effect.fallback);
+            line.append(element('span', 'ansi-dim line-source', reply ? '  (AI-worded: a language model wrote this reply)' : SCRIPTED_NOTE[llmReason] || SCRIPTED_NOTE.failed));
+            if (effect.sources) {
+                const sources = element('div', 'line');
+                sources.append(renderAnsi(effect.sources));
+                line.after(sources);
+            }
+            scrollToEnd();
+        });
     }
 
     // ---------- Game state -> page ----------
@@ -214,7 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
             progressBar.textContent = `${review.i} of ${review.tasks.length}`;
             challengeText.textContent = t.text;
             hintText.textContent = "No hints in the review: it shows what stuck. Type skip to skip it.";
-            statusChallenge.textContent = `Review ${review.i + 1}/${review.tasks.length}: ${t.text}`;
+            statusChallenge.textContent = `Review ${review.i + 1}/${review.tasks.length}`;
             return;
         }
         const c = view().currentChallenge();
@@ -225,7 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
         progressBar.textContent = `${c.index} of ${c.total}`;
         challengeText.textContent = c.text;
         hintText.replaceChildren(renderQuoted(c.hint || ''));
-        statusChallenge.textContent = (realMode ? 'Real Linux · ' : '') + (c.done ? (realMode ? 'Chapter 1 complete' : 'Every adventure complete') : `Ch ${c.chapterIndex + 1} · ${c.index + 1}/${c.total}: ${c.text}`);
+        statusChallenge.textContent = (realMode ? 'Real Linux · ' : '') + (c.done ? (realMode ? 'Chapter 1 complete' : 'Every adventure complete') : `Ch ${c.chapterIndex + 1} · ${c.index + 1}/${c.total}`);
     }
 
     // The real terminal covers Chapter 1 so far; the others stay in the simulator
@@ -361,8 +391,8 @@ document.addEventListener('DOMContentLoaded', () => {
         for (const t of tasks) await t.setup(io);
         review = { tasks, i: 0, io, then, chapter };
         bit.setAsleep(true);
-        print(`Bit is taking a nap. Before the next chapter, ${tasks.length === 1 ? 'one quick task' : `${tasks.length} quick tasks`} on your own, with no hints: they show what stuck. Type skip to skip.`, 'is-review');
-        print(`Review 1: ${tasks[0].text}`, 'is-review-task');
+        // The task itself is in the challenge panel; the terminal only says what is happening
+        print(`Review: ${tasks.length === 1 ? 'one quick task' : `${tasks.length} quick tasks`}, no hints. Type skip to skip.`, 'is-review');
         refresh();
         scrollToEnd();
     }
@@ -372,19 +402,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!(await t.check(review.io))) return;
         coach.recordReview(t.concept, true, review.chapter);
         saveCoach();
-        print(`✓ Review task done: ${t.label}`, 'is-win');
+        print('✓ Review task done', 'is-win');
         review.i++;
-        if (review.i < review.tasks.length) print(`Review ${review.i + 1}: ${review.tasks[review.i].text}`, 'is-review-task');
-        else endReview(false);
+        if (review.i >= review.tasks.length) endReview(false);
     }
 
     function endReview(skipped) {
         const { then } = review;
         review = null;
         bit.setAsleep(false);
-        if (skipped) print('Review skipped. It will be there at the end of the next chapter.', 'is-note');
+        if (skipped) print('Review skipped.', 'is-note');
         else {
-            print('Review done, all on your own.', 'is-chapter-done');
+            print('★ Review done', 'is-chapter-done');
             bit.say('*yawn* I\'m awake! You did those without me. Nice!', { mood: 'happy', hold: 6000 });
             bit.confetti(false);
         }
@@ -394,8 +423,109 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function save() {
-        if (!realMode) storage.set(SAVE_KEY, game.serialize());
+        if (realMode) return;
+        storage.set(SAVE_KEY, game.serialize());
+        cloud.changed();
     }
+
+    // ---------- Progress on the player's CUNY account (cloud.js) ----------
+
+    const saveStatus = $('saveStatus');
+    const saveRetry = $('saveRetry');
+    const signOut = $('signOut');
+    const accountLink = $('accountLink');
+    const query = new URLSearchParams(location.search);
+    const workId = /^[0-9a-f-]{36}$/.test(query.get('work') || '') ? query.get('work') : null;
+    const MY_WORK = accountLink.href;
+    let retrySave = null;
+    let played = false;   // once the player has typed, account progress is never applied unasked
+
+    function localSnapshot() {
+        const c = game.currentChallenge();
+        const fresh = !played && game.s.chapter === 0 && game.s.step === 0 && !Object.values(game.s.done || {}).some(Boolean);
+        return { state: game.serialize(), coach: coach.serialize(), progress: { chapter: c.chapterIndex, index: c.index, total: c.total, chapters: c.chapters, done: !!c.done, fresh } };
+    }
+
+    // Replace the game with the account's copy. The save is validated by the engine first.
+    function applyAccountSave(record) {
+        const loaded = CLIGame.load(record.state);
+        if (!loaded) return false;
+        if (realMode) leaveReal();
+        game = loaded;
+        if (record.coach) coach = Coach.create(record.coach);
+        storage.set(SAVE_KEY, game.serialize());
+        saveCoach();
+        lastReached = -1;
+        const c = game.currentChallenge();
+        output.replaceChildren(welcomeTemplate.cloneNode(true));
+        output.querySelector('.welcome p').textContent = 'Welcome back. This is the progress from your CUNY account.';
+        chapterIntro({ index: c.chapterIndex, title: c.chapter, intro: c.done ? 'Every adventure is complete. Replay any chapter from the sidebar.' : 'Picking up where you left off.' });
+        refresh();
+        scrollToEnd();
+        return true;
+    }
+
+    function showAccount(signedIn) {
+        accountLink.textContent = signedIn ? 'My work' : 'CUNY Login';
+        accountLink.href = signedIn ? MY_WORK : `/auth/start?next=${encodeURIComponent(workId ? `/?work=${workId}` : '/')}`;
+        signOut.hidden = !signedIn;
+    }
+
+    const cloud = CloudSave.create({
+        request: (path, init = {}) => fetch(path, { ...init, cache: 'no-store', credentials: 'same-origin', signal: AbortSignal.timeout(10000) }),
+        local: localSnapshot,
+        apply: applyAccountSave,
+        uuid: () => crypto.randomUUID(),
+        workId,
+        recall: () => { try { return JSON.parse(storage.get(CLOUD_KEY) || 'null'); } catch (_) { return null; } },
+        remember: value => storage.set(CLOUD_KEY, JSON.stringify(value)),
+        onStatus({ kind, message, retry }) {
+            saveStatus.textContent = message;
+            saveStatus.dataset.kind = kind;
+            retrySave = retry || null;
+            saveRetry.hidden = !retry;
+            if (cloud && cloud.available) showAccount(cloud.authenticated);
+        },
+        // Two different games: the player decides, in the terminal, which one continues
+        onChoice({ cloud: theirs, local: mine, useCloud, keepLocal }) {
+            const line = element('div', 'line is-note line-choice');
+            const pick = (label, action, done) => {
+                const button = element('button', 'text-button', label);
+                button.type = 'button';
+                button.addEventListener('click', () => {
+                    if (booting) { print('Linux is still starting. Choose again in a moment.', 'is-note'); scrollToEnd(); return; }
+                    line.replaceChildren(done);
+                    action();
+                    input.focus({ preventScroll: true });
+                });
+                return button;
+            };
+            line.append(
+                element('span', '', `Your CUNY account has saved progress (${theirs}). This browser has ${mine}.`),
+                pick('Use account progress', useCloud, 'Using the progress from your CUNY account.'),
+                pick('Keep this browser’s progress', keepLocal, 'Keeping this browser’s progress; it now replaces the account copy.'),
+            );
+            output.append(line);
+            scrollToEnd();
+        },
+    });
+
+    saveRetry.addEventListener('click', () => { if (retrySave) retrySave(); });
+    signOut.addEventListener('click', async () => {
+        signOut.disabled = true;
+        await cloud.flush();
+        await cloud.signOut();
+        signOut.disabled = false;
+        showAccount(false);
+    });
+    // Leaving for My work waits for the last save, so the list there is current
+    accountLink.addEventListener('click', async (e) => {
+        if (!cloud.authenticated || !cloud.pending()) return;
+        e.preventDefault();
+        await cloud.flush();
+        location.assign(accountLink.href);
+    });
+    document.addEventListener('visibilitychange', () => { if (document.hidden && cloud.pending()) void cloud.flush(); });
 
     // ---------- Commands ----------
 
@@ -418,14 +548,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (r.stdout.trim()) print(r.stdout.replace(/\n+$/, ''));
             if (r.stderr.trim()) print(r.stderr.replace(/\n+$/, ''), 'is-error');
         }
-        for (const c of r.completed) print(`✓ Challenge completed: ${c.text}`, 'is-win');
+        // The panel announces the next challenge, so the terminal only confirms this one
+        for (const c of r.completed) print('✓ Challenge complete', 'is-win');
         const chapterComplete = r.done && r.completed.length ? { title: real.currentChallenge().chapter, outro: 'You did it on a real Linux. Every command was the real thing.' } : null;
         observe(before, command, r.code === 0, r.completed.length > 0);
         if (chapterComplete) {
-            print(`★ Chapter complete: ${chapterComplete.title}. ${chapterComplete.outro}`, 'is-chapter-done');
+            print(`★ Chapter complete: ${chapterComplete.title}`, 'is-chapter-done');
             setTimeout(() => startReview(0, handOff), 2500);
         }
-        else if (r.completed.length) print(`Next: ${real.currentChallenge().text}`, 'is-note');
         bit.react({
             completed: r.completed, chapterComplete, gameComplete: false, prompt: null,
             error: r.code === 0 ? null : { cmd: command.trim().split(/\s+/)[0], code: 'real', message: r.stderr },
@@ -449,15 +579,14 @@ document.addEventListener('DOMContentLoaded', () => {
         observe(before, command, !r.error, r.completed.length > 0);
         if (r.clear) output.replaceChildren();
         if (r.output) print(r.output);
-        for (const c of r.completed) print(`✓ Challenge completed: ${c.text}`, 'is-win');
-        if (r.chapterComplete) print(`★ Chapter complete: ${r.chapterComplete.title}. ${r.chapterComplete.outro}`, 'is-chapter-done');
-        if (r.gameComplete) print('★ ★ ★  Every adventure is complete. Thanks for playing, agent.', 'is-chapter-done');
+        for (const c of r.completed) print('✓ Challenge complete', 'is-win');
+        if (r.chapterComplete) print(`★ Chapter complete: ${r.chapterComplete.title}`, 'is-chapter-done');
+        if (r.gameComplete) print('★ ★ ★  Every adventure complete', 'is-chapter-done');
         // A finished chapter ends with the review; the next chapter's intro waits for it
         if (r.chapterComplete) {
             const started = r.chapterStarted;
             setTimeout(() => startReview(r.chapterComplete.index, () => { if (started) chapterIntro(started); }), 1500);
         } else if (r.chapterStarted) chapterIntro(r.chapterStarted);
-        else if (r.completed.length && !r.gameComplete) print(`Next: ${game.currentChallenge().text}`, 'is-note');
         for (const effect of r.effects) if (effect.type === 'llm') runAgent(effect);
         bit.react(r, command);
         if (review) await checkReview();
@@ -477,6 +606,7 @@ document.addEventListener('DOMContentLoaded', () => {
             scrollToEnd();
             return;
         }
+        played = true;
         if (!game.pending) {
             commandHistory.push(command);
             historyIndex = commandHistory.length;
@@ -576,8 +706,10 @@ document.addEventListener('DOMContentLoaded', () => {
         storage.remove(SAVE_KEY);
         game = new CLIGame();
         lastReached = -1;
+        played = true;
         output.replaceChildren(welcomeTemplate.cloneNode(true));
         refresh();
+        save();
         input.focus();
     });
 
@@ -602,17 +734,27 @@ document.addEventListener('DOMContentLoaded', () => {
         realToggle.disabled = true;
         booting = true;
         if (!auto) output.replaceChildren();
-        if (!real) print('Starting a real Linux inside your browser (about 11 MB the first time)…', 'is-note');
+        // One line for the whole start-up: it is replaced, not added to, when Linux is ready
+        const starting = real ? null : print('Starting real Linux (about 11 MB the first time)…', 'is-note');
         try {
             if (!real) {
                 const backend = new RealTerminal.V86Backend();
                 const { seconds } = await backend.boot();
                 real = new RealChapters.Game(backend, CLIGame.CHAPTERS);
                 await real.start();
-                print(`Linux is up in ${seconds.toFixed(1)} s. Everything you type runs in a real bash, on a real Linux kernel, in this tab.`, 'is-note');
+                starting.textContent = `Real Linux ready (${seconds.toFixed(1)} s).`;
+            }
+            // Account progress restored during start-up may already be past Chapter 1
+            if (auto && !realByDefault()) {
+                realToggle.setAttribute('aria-pressed', 'false');
+                booting = false;
+                realToggle.disabled = false;
+                refresh();
+                return;
             }
             realMode = true;
-            chapterIntro({ index: 0, title: real.currentChallenge().chapter, intro: 'Same mission, real machine: the files, errors and output are all genuine.' });
+            // On a first visit the line above already says it; the longer note is for switching over mid-game
+            chapterIntro({ index: 0, title: real.currentChallenge().chapter, intro: auto ? '' : 'Same mission, real machine: the files, errors and output are all genuine.' });
             if (!auto) bit.say("We're on a real Linux now! Same mission, real commands.", { mood: 'happy', hold: 6000 });
         } catch (err) {
             realToggle.setAttribute('aria-pressed', 'false');
@@ -630,7 +772,7 @@ document.addEventListener('DOMContentLoaded', () => {
         game.s.done[CLIGame.CHAPTERS[0].id] = true;
         save();
         leaveReal();
-        print('The next chapters use the simulator, which plays the AI agent and its tools.', 'is-note');
+        print('From here the simulator plays the AI agent.', 'is-note');
         chapterIntro(started);
         refresh();
         scrollToEnd();
@@ -681,17 +823,27 @@ document.addEventListener('DOMContentLoaded', () => {
     if (resumed) {
         const c = game.currentChallenge();
         output.replaceChildren(welcomeTemplate.cloneNode(true));
-        output.querySelector('.welcome p').textContent = 'Welcome back, agent. Your progress was saved in this browser.';
+        output.querySelector('.welcome p').textContent = 'Welcome back.';
         chapterIntro({ index: c.chapterIndex, title: c.chapter, intro: c.done ? 'Every adventure is complete. Replay any chapter from the sidebar.' : 'Picking up where you left off.' });
     }
     refresh();
     setBit(storage.get(BIT_KEY) !== 'off');
     const greeting = setTimeout(() => {
-        bit.say(resumed ? 'Welcome back! Click me any time for a hint.' : "Hi, I'm Bit! Click me any time you'd like a hint.", { mood: 'happy', hold: 6000 });
+        bit.say(resumed ? 'Welcome back! Click me for a hint.' : "Hi, I'm Bit. Click me for a hint.", { mood: 'happy', hold: 6000 });
     }, 900);
     form.addEventListener('submit', () => clearTimeout(greeting), { once: true });
     $('spriteButton').addEventListener('click', () => clearTimeout(greeting), { once: true });
-    if (realByDefault()) enterReal({ auto: true });
+    // Sign-in is checked first, briefly, so restored progress decides where play starts
+    const signin = query.get('signin');
+    if (signin) {
+        print(signin === 'no-access' ? 'That CUNY account does not have Lab access yet, so progress stays in this browser.' : 'CUNY sign-in did not finish. Progress is still saved in this browser; use CUNY Login to try again.', 'is-note');
+        history.replaceState(null, '', location.pathname);
+    }
+    const account = cloud.start().catch(() => null);
+    Promise.race([account, new Promise(resolve => setTimeout(resolve, 2500))]).then(() => {
+        if (workId && cloud.available && !cloud.authenticated) print('Sign in with CUNY Login to open the progress saved on your account.', 'is-note');
+        if (realByDefault()) enterReal({ auto: true });
+    });
     // Jump straight to the prompt where a keyboard is likely; on touch screens wait for a tap
     if (window.matchMedia('(pointer: fine)').matches) {
         input.focus({ preventScroll: true });

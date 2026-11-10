@@ -33,13 +33,15 @@ const BitSprite = (() => {
     const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const pick = list => list[Math.floor(Math.random() * list.length)];
 
-    function create({ root, button, bubble, text, live, closeButton, canvas, ask, ladder, context, onLayout }) {
+    function create({ root, button, bubble, text, live, name, closeButton, canvas, ask, ladder, context, onLayout }) {
         let enabled = true;
         let asleep = false;
         let hideTimer = null;
         let moodTimer = null;
         let idleTimer = null;
         let request = 0;
+        let asking = null;      // the model request in flight, so a newer line can cancel it
+        let hinting = false;    // one hint at a time: extra clicks while Bit thinks do nothing
         let streak = { id: null, errors: 0, hints: 0, nudged: false };
 
         function setMood(mood, hold = 2400) {
@@ -91,12 +93,21 @@ const BitSprite = (() => {
             });
         }
 
-        function say(message, { mood = 'idle', hold = 9000 } = {}) {
+        // A line worded by the language model is marked, so it is never mistaken for the game's own
+        function setSource(model) {
+            bubble.dataset.source = model ? 'model' : 'script';
+            if (name) name.textContent = model ? 'Bit · AI-worded' : 'Bit';
+        }
+
+        function say(message, { mood = 'idle', hold = 9000, model = false } = {}) {
             if (!enabled || !message) return;
             request++;
+            if (asking) { asking.abort(); asking = null; }
+            hinting = false;
             bubble.classList.remove('is-thinking');
+            setSource(model);
             render(message);
-            live.textContent = `Bit says: ${message.replace(QUOTED, '$1')}`;
+            live.textContent = `Bit says${model ? ' (worded by a language model)' : ''}: ${message.replace(QUOTED, '$1')}`;
             bubble.hidden = false;
             layout();
             setMood(mood, Math.min(hold, 4000));
@@ -108,14 +119,21 @@ const BitSprite = (() => {
         async function sayFromModel(payload, fallback, options, accept = () => true) {
             if (!enabled) return;
             const mine = ++request;
+            // A newer line replaces this one: stop waiting for (and paying for) the old request
+            if (asking) asking.abort();
+            const controller = typeof AbortController === 'function' ? new AbortController() : null;
+            asking = controller;
             bubble.classList.add('is-thinking');
+            setSource(false);
             text.textContent = 'Bit is thinking…';
             bubble.hidden = false;
             layout();
             clearTimeout(hideTimer);
-            const reply = await ask(payload);
+            const reply = await ask(payload, controller ? controller.signal : undefined);
+            if (asking === controller) asking = null;
             if (mine !== request) return;
-            say(reply && accept(reply) ? reply : fallback, options);
+            const usable = !!reply && accept(reply);
+            say(usable ? reply : fallback, { ...options, model: usable });
         }
 
         function payload(event, extra = {}) {
@@ -135,6 +153,9 @@ const BitSprite = (() => {
                 say("Zzz… I'm napping while you try these on your own. You've got this!", { mood: 'sleep', hold: 5000 });
                 return;
             }
+            // While a hint is on its way, more clicks neither climb the ladder nor call the model again
+            if (hinting) return;
+            hinting = true;
             streak.hints++;
             const h = ladder.next();
             sayFromModel(payload('hint', { level: h.level, allowed: h.text, hint: h.reveal }), h.text, { mood: 'idle', hold: 14000 },
@@ -197,13 +218,13 @@ const BitSprite = (() => {
             }
             if (result.gameComplete) {
                 animate('is-jumping');
-                say("You did it! Every adventure, done. You're a real command-line agent now.", { mood: 'happy', hold: 16000 });
+                say("You did it! You're a real command-line agent now.", { mood: 'happy', hold: 12000 });
                 confetti(true);
                 return;
             }
             if (result.chapterComplete) {
                 animate('is-jumping');
-                say(`Chapter complete: ${result.chapterComplete.title}! ${result.chapterComplete.outro}`, { mood: 'happy', hold: 12000 });
+                say(result.chapterComplete.outro, { mood: 'happy', hold: 9000 });
                 confetti(false);
                 return;
             }
@@ -219,6 +240,9 @@ const BitSprite = (() => {
             if (!result.error) return;
             streak.errors++;
             animate('is-shaking');
+            // The terminal already explains a first mistake, with a tip under it. Bit only
+            // looks worried then, and speaks up (and asks the model) from the second one on.
+            if (streak.errors === 1) { setMood('worried'); return; }
             const code = result.error.code;
             let fallback = ERROR_LINES[code] || "Not quite. Click me if you'd like a hint!";
             if (code === 'unknown_command' && result.events[0] && result.events[0].meta.suggestion) {
