@@ -186,3 +186,53 @@ test('sign-out forgets the account item but keeps playing locally', async () => 
     assert.equal(h.timers.length, 0);
     assert.equal(h.last().kind, 'signed-out');
 });
+
+test('a save whose reply was lost is recognised as our own, not shown as a conflict', async () => {
+    // Same session: the PUT lands, the reply never arrives, the player types one more command
+    const h = harness({ local: game('local', 1, 1) });
+    await h.cloud.start();
+    h.local = game('local', 1, 2);
+    const landed = { ...stored(h.local, 2) };
+    h.fail = ['network'];
+    h.cloud.changed(); await h.fire();           // request "fails" from the page's point of view
+    h.saved = landed;                            // but the store has it, at the next revision
+    h.local = game('local', 1, 3);
+    await h.fire();                              // the scheduled retry: 409, then recognised
+    await new Promise(r => setImmediate(r));
+    assert.equal(h.choices.length, 0, 'no conflict prompt against our own save');
+    assert.equal(h.saved.content.record.progress.index, 3);
+    assert.equal(h.saved.revision, 3);
+
+    // Next visit: the tab closed before the reply; a newer local step must not prompt either
+    const later = harness({ saved: stored(game('local', 2, 4), 9), local: game('local', 2, 5),
+        remembered: { id: ID, revision: 8, pushing: [] } });
+    later.remembered.pushing = [(() => { let hsh = 2166136261; const t = game('local', 2, 4).state; for (let i = 0; i < t.length; i++) hsh = Math.imul(hsh ^ t.charCodeAt(i), 16777619); return `${t.length}:${(hsh >>> 0).toString(36)}`; })()];
+    await later.cloud.start();
+    assert.equal(later.choices.length, 0);
+    assert.equal(later.saved.content.record.progress.index, 5);
+});
+
+test('a genuinely different copy from elsewhere still prompts', async () => {
+    const h = harness({ saved: stored(game('other-device', 4, 4), 9), local: game('local', 2, 5), remembered: { id: ID, revision: 8, pushing: ['10:abc'] } });
+    await h.cloud.start();
+    assert.equal(h.choices.length, 1);
+    assert.equal(h.saved.content.record.progress.chapter, 4);
+});
+
+test('an untouched new game never replaces an account item it cannot read', async () => {
+    const unreadable = { id: ID, revision: 4, content: { schemaVersion: 1, contributions: [], text: '', reading: '', settings: {}, record: { format: 'some-future-format', state: '{}' } } };
+    const h = harness({ saved: unreadable, local: game('local', 0, 0) });
+    await h.cloud.start();
+    assert.equal(h.calls.filter(c => c.startsWith('PUT')).length, 0);
+    assert.equal(h.saved.revision, 4);
+});
+
+test('the size limit is judged on the encoded save, so a refusal by the store cannot surprise the player', async () => {
+    const big = game('local', 1, 1);
+    big.state = JSON.stringify({ version: 2, pad: '"é'.repeat(60000) });   // 120k characters, far more once encoded
+    const h = harness({ local: big });
+    await h.cloud.start();
+    assert.equal(h.calls.filter(c => c.startsWith('PUT')).length, 0, 'nothing oversized is sent');
+    assert.equal(h.last().kind, 'error');
+    assert.match(h.last().message, /too large/);
+});

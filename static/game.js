@@ -770,8 +770,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function handOff() {
         const started = game.startChapter(1, { fresh: true });
         game.s.done[CLIGame.CHAPTERS[0].id] = true;
-        save();
+        // Leave the real terminal first: save() does nothing while it is active, and a
+        // finished Chapter 1 would otherwise be lost if the tab closed here.
         leaveReal();
+        save();
         print('From here the simulator plays the AI agent.', 'is-note');
         chapterIntro(started);
         refresh();
