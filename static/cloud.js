@@ -12,7 +12,15 @@ const CloudSave = (() => {
     const DEBOUNCE_MS = 1500;
     const RETRY_MS = [2000, 8000, 30000];
     const MAX_CHARS = 150000;
+    const MAX_BODY_BYTES = 180000;   // under the store's 192,000-byte limit, with room for the envelope
     const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+    // A short fingerprint of a save, to recognise our own earlier push when its reply was lost
+    function mark(text) {
+        let h = 2166136261;
+        for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
+        return `${text.length}:${(h >>> 0).toString(36)}`;
+    }
 
     const describe = p => (p.done ? 'every chapter complete' : `Chapter ${p.chapter + 1} of ${p.chapters}, challenge ${p.index + 1} of ${p.total}`);
 
@@ -69,6 +77,13 @@ const CloudSave = (() => {
         const status = (kind, message, extra = {}) => onStatus({ kind, message, ...extra });
         // The account copy this browser last matched; if it is unchanged, local progress is simply newer
         const matched = () => remember({ id, revision });
+        // The account copy is ours if this browser last matched that revision, or if it is the
+        // very save this browser sent last (its reply can be lost to a timeout or a closed tab).
+        const isOurs = (cloud) => {
+            const known = recall();
+            if (!known || known.id !== id) return false;
+            return known.revision === revision || (Array.isArray(known.pushing) && known.pushing.includes(mark(cloud.state)));
+        };
 
         async function call(path, init) {
             let res;
@@ -133,10 +148,10 @@ const CloudSave = (() => {
                 await push();
                 return;
             }
-            if (!cloud) { await push(); return; }                 // an unreadable item is replaced by the current game
+            // An unreadable item is replaced by the current game, but never by an untouched new one
+            if (!cloud) { if (mine.progress.fresh) status('saved', 'Signed in. Progress will be saved to your CUNY account.'); else await push(); return; }
             if (cloud.state === mine.state) { synced = mine.state; matched(); status('saved', 'Saved to your CUNY account.'); return; }
-            const known = recall();
-            if (!workId && known && known.id === id && known.revision === revision) { await push(); return; }
+            if (!workId && isOurs(cloud)) { await push(); return; }
             if (mine.progress.fresh || workId) {
                 if (apply(cloud)) { synced = cloud.state; matched(); status('saved', 'Progress restored from your CUNY account.'); }
                 else status('error', 'The progress on your account could not be opened. This browser’s progress is kept.');
@@ -151,10 +166,16 @@ const CloudSave = (() => {
             if (saving) { dirty = true; return saving; }
             const snapshot = local();
             if (snapshot.state === synced) return true;
-            if (snapshot.state.length > MAX_CHARS) { stopped = true; status('error', 'This game is too large to save to your account. It is still saved in this browser.'); return false; }
+            // Size is judged on what is actually sent: quotes and non-ASCII text grow when encoded
+            const body = JSON.stringify(envelope(id, revision, snapshot));
+            if (snapshot.state.length > MAX_CHARS || new TextEncoder().encode(body).length > MAX_BODY_BYTES) { stopped = true; status('error', 'This game is too large to save to your account. It is still saved in this browser.'); return false; }
             status('saving', 'Saving to your CUNY account…');
+            // Every save sent since the last confirmed one may have landed; keep their fingerprints
+            const before = recall() || {};
+            const sentMarks = [...new Set([...(before.id === id && Array.isArray(before.pushing) ? before.pushing : []), mark(snapshot.state)])].slice(-5);
+            remember({ id, revision: before.id === id ? before.revision : undefined, pushing: sentMarks });
             saving = (async () => {
-                const reply = await call('/api/work/entries', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(envelope(id, revision, snapshot)) });
+                const reply = await call('/api/work/entries', { method: 'PUT', headers: { 'content-type': 'application/json' }, body });
                 if (reply.ok && reply.data && reply.data.item) {
                     revision = reply.data.item.revision; synced = snapshot.state; attempts = 0; stopped = false; matched();
                     status('saved', 'Saved to your CUNY account.');
@@ -167,7 +188,8 @@ const CloudSave = (() => {
                     const cloud = one.ok && one.data && one.data.item ? recordOf(one.data.item) : null;
                     if (one.ok && one.data && one.data.item) revision = one.data.item.revision;
                     else if (one.status === 404) { id = uuid(); revision = 0; }
-                    if (cloud && cloud.state !== snapshot.state) offerChoice(cloud);
+                    // If what is there is the save we just sent, its reply was lost: carry on from it
+                    if (cloud && cloud.state !== snapshot.state && !isOurs(cloud)) offerChoice(cloud);
                     else dirty = true;
                     return false;
                 }
