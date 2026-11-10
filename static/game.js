@@ -391,8 +391,8 @@ document.addEventListener('DOMContentLoaded', () => {
         for (const t of tasks) await t.setup(io);
         review = { tasks, i: 0, io, then, chapter };
         bit.setAsleep(true);
-        print(`Bit is taking a nap. Before the next chapter, ${tasks.length === 1 ? 'one quick task' : `${tasks.length} quick tasks`} on your own, with no hints: they show what stuck. Type skip to skip.`, 'is-review');
-        print(`Review 1: ${tasks[0].text}`, 'is-review-task');
+        // The task itself is in the challenge panel; the terminal only says what is happening
+        print(`Review: ${tasks.length === 1 ? 'one quick task' : `${tasks.length} quick tasks`}, no hints. Type skip to skip.`, 'is-review');
         refresh();
         scrollToEnd();
     }
@@ -402,19 +402,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!(await t.check(review.io))) return;
         coach.recordReview(t.concept, true, review.chapter);
         saveCoach();
-        print(`✓ Review task done: ${t.label}`, 'is-win');
+        print('✓ Review task done', 'is-win');
         review.i++;
-        if (review.i < review.tasks.length) print(`Review ${review.i + 1}: ${review.tasks[review.i].text}`, 'is-review-task');
-        else endReview(false);
+        if (review.i >= review.tasks.length) endReview(false);
     }
 
     function endReview(skipped) {
         const { then } = review;
         review = null;
         bit.setAsleep(false);
-        if (skipped) print('Review skipped. It will be there at the end of the next chapter.', 'is-note');
+        if (skipped) print('Review skipped.', 'is-note');
         else {
-            print('Review done, all on your own.', 'is-chapter-done');
+            print('★ Review done', 'is-chapter-done');
             bit.say('*yawn* I\'m awake! You did those without me. Nice!', { mood: 'happy', hold: 6000 });
             bit.confetti(false);
         }
@@ -554,7 +553,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const chapterComplete = r.done && r.completed.length ? { title: real.currentChallenge().chapter, outro: 'You did it on a real Linux. Every command was the real thing.' } : null;
         observe(before, command, r.code === 0, r.completed.length > 0);
         if (chapterComplete) {
-            print(`★ Chapter complete: ${chapterComplete.title}. ${chapterComplete.outro}`, 'is-chapter-done');
+            print(`★ Chapter complete: ${chapterComplete.title}`, 'is-chapter-done');
             setTimeout(() => startReview(0, handOff), 2500);
         }
         bit.react({
@@ -581,8 +580,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (r.clear) output.replaceChildren();
         if (r.output) print(r.output);
         for (const c of r.completed) print('✓ Challenge complete', 'is-win');
-        if (r.chapterComplete) print(`★ Chapter complete: ${r.chapterComplete.title}. ${r.chapterComplete.outro}`, 'is-chapter-done');
-        if (r.gameComplete) print('★ ★ ★  Every adventure is complete. Thanks for playing, agent.', 'is-chapter-done');
+        if (r.chapterComplete) print(`★ Chapter complete: ${r.chapterComplete.title}`, 'is-chapter-done');
+        if (r.gameComplete) print('★ ★ ★  Every adventure complete', 'is-chapter-done');
         // A finished chapter ends with the review; the next chapter's intro waits for it
         if (r.chapterComplete) {
             const started = r.chapterStarted;
@@ -773,7 +772,7 @@ document.addEventListener('DOMContentLoaded', () => {
         game.s.done[CLIGame.CHAPTERS[0].id] = true;
         save();
         leaveReal();
-        print('The next chapters use the simulator, which plays the AI agent and its tools.', 'is-note');
+        print('From here the simulator plays the AI agent.', 'is-note');
         chapterIntro(started);
         refresh();
         scrollToEnd();

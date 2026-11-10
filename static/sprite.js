@@ -218,13 +218,13 @@ const BitSprite = (() => {
             }
             if (result.gameComplete) {
                 animate('is-jumping');
-                say("You did it! Every adventure, done. You're a real command-line agent now.", { mood: 'happy', hold: 16000 });
+                say("You did it! You're a real command-line agent now.", { mood: 'happy', hold: 12000 });
                 confetti(true);
                 return;
             }
             if (result.chapterComplete) {
                 animate('is-jumping');
-                say(`Chapter complete: ${result.chapterComplete.title}! ${result.chapterComplete.outro}`, { mood: 'happy', hold: 12000 });
+                say(result.chapterComplete.outro, { mood: 'happy', hold: 9000 });
                 confetti(false);
                 return;
             }

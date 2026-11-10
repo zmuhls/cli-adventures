@@ -839,25 +839,43 @@ summary:hover { color: var(--green); }
 }
 
 @media (max-width: 600px) {
+    /* The title shares the top row with Games and CUNY Login instead of sitting under them */
     .page-header {
-        padding-top: calc(max(12px, env(safe-area-inset-top)) + 56px);
-        padding-right: var(--gutter);
+        padding-top: max(12px, env(safe-area-inset-top));
+        padding-right: calc(var(--gutter) + 200px);
     }
-    .page-header h1 { min-height: 0; font-size: 1.25rem; }
-    .tagline { font-size: var(--fs-body); }
-    .layout { gap: 12px; padding-top: 12px; }
-    .mission { padding: 14px; }
-    .challenge { font-size: var(--fs-lead); }
-    .terminal { padding: 0 12px; }
+    .page-header h1 { min-height: 44px; font-size: 1.125rem; white-space: nowrap; }
+    .page-header .badge { display: none; }
+    /* On a phone the terminal comes first: the tagline goes, and the challenge
+       panel is three tight rows, so the prompt is on screen without scrolling. */
+    .tagline { display: none; }
+    .layout { gap: 8px; padding-top: 8px; }
+    .mission { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; padding: 10px 12px; }
+    .mission-head { display: contents; }
+    .mission-head h2 { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .mission .chapter-label { grid-column: 1; grid-row: 1; }
+    .mission .step-count { grid-column: 2; grid-row: 1; }
+    .mission progress, .mission .challenge, .mission .hint { grid-column: 1 / -1; }
+    .mission .challenge { margin: 2px 0 0; font-size: var(--fs-body); }
+    .mission .hint { margin-top: 2px; }
+    /* Smaller type in the output fits a command's result on fewer lines; the prompt
+       itself stays at 16px so iOS does not zoom into it. */
+    .terminal { padding: 0 12px; font-size: var(--fs-small); line-height: 1.5; }
+    .terminal #commandInput { font-size: 1rem; }
     .tab-bar { padding-left: 12px; gap: 10px; }
     .nav-arrows { display: none; }
     .address-bar { padding: 6px 8px; }
 }
 
+@media (max-width: 359px) {
+    /* Too narrow for one row: the title goes back under the navigation */
+    .page-header { padding-top: calc(max(12px, env(safe-area-inset-top)) + 52px); padding-right: var(--gutter); }
+}
+
 @media (pointer: coarse) {
     .status-keys { display: none; }
     /* 16px keeps iOS from zooming into the prompt */
-    .terminal { font-size: 1rem; }
+    #commandInput { font-size: 1rem; }
     .command-list button { min-height: 40px; }
 }
 
