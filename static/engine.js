@@ -6,7 +6,7 @@ const CLIGame = (() => {
 
     const HOME = '/home/fsociety';
     const SAVE_VERSION = 2;
-    const CLOUD_MODEL = 'deepseek-v4-flash-0731';
+    const CLOUD_MODEL = 'deepseek-v4.1-flash-1017';
 
     // ---------- Output helpers ----------
 
