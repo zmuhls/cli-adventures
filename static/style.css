@@ -349,34 +349,37 @@ a.tab:focus-visible { outline-offset: -2px; }
 
 .line + .line { margin-top: 2px; }
 .line-cmd { margin-top: 12px !important; }
-.line-cmd .prompt { margin-right: 0.6ch; }
+/* Colour in the terminal carries three meanings only: green for the live prompt and a
+   success, red for an error, grey for an aside. Names, files, headings and the agent
+   are told apart by weight and by their marks (a trailing /, a star, a tick). */
+.line-cmd .prompt { margin-right: 0.6ch; color: var(--muted); }
 .line.is-win { color: var(--green); }
 .line.is-note { color: var(--muted); }
 .line.is-error { color: var(--red); }
-.ansi-dir { color: var(--cyan); font-weight: 500; }
+.ansi-dir { color: var(--text); font-weight: 600; }
 .ansi-dir::after { content: "/"; color: var(--muted); }
-.ansi-ok { color: var(--green); }
+.ansi-ok { color: var(--text); font-weight: 500; }
 .ansi-err { color: var(--red); }
-.ansi-warn { color: var(--yellow); }
+.ansi-warn { color: var(--text); font-weight: 600; }
 .ansi-file { color: var(--text); }
 .ansi-agent { color: var(--text); }
 .ansi-dim { color: var(--muted); }
 
 .prompt { color: var(--green); font-weight: 500; white-space: nowrap; }
-.prompt.is-approval { color: var(--yellow); }
+.prompt.is-approval { color: var(--text); font-weight: 600; }
 
-.line.is-chapter-done { margin-top: 8px; color: var(--green); }
+.line.is-chapter-done { margin-top: 8px; color: var(--text); font-weight: 600; }
 .line-agent.is-thinking { color: var(--muted); }
 .line-chapter {
     margin: 14px 0 4px;
     padding: 10px 14px;
-    border-left: 3px solid var(--green);
+    border-left: 3px solid var(--line-strong);
     border-radius: 4px;
-    background: rgba(80, 250, 123, 0.06);
+    background: rgba(255, 255, 255, 0.03);
     white-space: normal;
 }
 .line-chapter p + p { margin-top: 4px; }
-.chapter-heading { color: var(--green); font-weight: 500; }
+.chapter-heading { color: var(--text); font-weight: 600; }
 .chapter-first code {
     padding: 1px 5px;
     border-radius: 4px;
@@ -511,7 +514,6 @@ a.tab:focus-visible { outline-offset: -2px; }
     transform: rotate(45deg);
 }
 .bubble-name { color: var(--green); font-size: var(--fs-label); letter-spacing: 0.08em; text-transform: uppercase; }
-.bubble[data-source="model"] .bubble-name { color: var(--cyan); }
 .line-choice { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; }
 .line-choice .text-button { min-height: 32px; }
 .line-source { color: var(--muted); }
@@ -904,9 +906,9 @@ summary:hover { color: var(--green); }
     font: 500 var(--fs-label)/1 var(--font-ui);
     letter-spacing: 0.2em;
 }
-.line.is-review { margin-top: 12px; color: var(--cyan); }
+.line.is-review { margin-top: 12px; color: var(--muted); }
 .line.is-review-task { color: var(--text); }
-.line.is-review-task::before { content: "▸ "; color: var(--cyan); }
+.line.is-review-task::before { content: "▸ "; color: var(--muted); }
 
 .skill-list { display: grid; gap: 8px; margin: 4px 0 8px; padding: 0 18px; list-style: none; font-size: var(--fs-small); }
 .skill { display: grid; grid-template-columns: minmax(0, 1fr) 64px 84px; align-items: center; gap: 10px; }
