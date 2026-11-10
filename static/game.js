@@ -123,9 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const box = element('div', 'line line-chapter');
         box.append(element('p', 'chapter-heading', `Chapter ${started.index + 1} · ${started.title}`));
         if (started.intro) box.append(element('p', '', started.intro));
-        const first = element('p', 'chapter-first');
-        first.append('First: ', renderQuoted(game.currentChallenge().text));
-        box.append(first);
+        // What to do first is in the challenge panel; it is not repeated here
         output.append(box);
     }
 
@@ -246,7 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
             progressBar.textContent = `${review.i} of ${review.tasks.length}`;
             challengeText.textContent = t.text;
             hintText.textContent = "No hints in the review: it shows what stuck. Type skip to skip it.";
-            statusChallenge.textContent = `Review ${review.i + 1}/${review.tasks.length}: ${t.text}`;
+            statusChallenge.textContent = `Review ${review.i + 1}/${review.tasks.length}`;
             return;
         }
         const c = view().currentChallenge();
@@ -257,7 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
         progressBar.textContent = `${c.index} of ${c.total}`;
         challengeText.textContent = c.text;
         hintText.replaceChildren(renderQuoted(c.hint || ''));
-        statusChallenge.textContent = (realMode ? 'Real Linux · ' : '') + (c.done ? (realMode ? 'Chapter 1 complete' : 'Every adventure complete') : `Ch ${c.chapterIndex + 1} · ${c.index + 1}/${c.total}: ${c.text}`);
+        statusChallenge.textContent = (realMode ? 'Real Linux · ' : '') + (c.done ? (realMode ? 'Chapter 1 complete' : 'Every adventure complete') : `Ch ${c.chapterIndex + 1} · ${c.index + 1}/${c.total}`);
     }
 
     // The real terminal covers Chapter 1 so far; the others stay in the simulator
@@ -461,7 +459,7 @@ document.addEventListener('DOMContentLoaded', () => {
         lastReached = -1;
         const c = game.currentChallenge();
         output.replaceChildren(welcomeTemplate.cloneNode(true));
-        output.querySelector('.welcome p').textContent = 'Welcome back, agent. This progress comes from your CUNY account.';
+        output.querySelector('.welcome p').textContent = 'Welcome back. This is the progress from your CUNY account.';
         chapterIntro({ index: c.chapterIndex, title: c.chapter, intro: c.done ? 'Every adventure is complete. Replay any chapter from the sidebar.' : 'Picking up where you left off.' });
         refresh();
         scrollToEnd();
@@ -551,14 +549,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (r.stdout.trim()) print(r.stdout.replace(/\n+$/, ''));
             if (r.stderr.trim()) print(r.stderr.replace(/\n+$/, ''), 'is-error');
         }
-        for (const c of r.completed) print(`✓ Challenge completed: ${c.text}`, 'is-win');
+        // The panel announces the next challenge, so the terminal only confirms this one
+        for (const c of r.completed) print('✓ Challenge complete', 'is-win');
         const chapterComplete = r.done && r.completed.length ? { title: real.currentChallenge().chapter, outro: 'You did it on a real Linux. Every command was the real thing.' } : null;
         observe(before, command, r.code === 0, r.completed.length > 0);
         if (chapterComplete) {
             print(`★ Chapter complete: ${chapterComplete.title}. ${chapterComplete.outro}`, 'is-chapter-done');
             setTimeout(() => startReview(0, handOff), 2500);
         }
-        else if (r.completed.length) print(`Next: ${real.currentChallenge().text}`, 'is-note');
         bit.react({
             completed: r.completed, chapterComplete, gameComplete: false, prompt: null,
             error: r.code === 0 ? null : { cmd: command.trim().split(/\s+/)[0], code: 'real', message: r.stderr },
@@ -582,7 +580,7 @@ document.addEventListener('DOMContentLoaded', () => {
         observe(before, command, !r.error, r.completed.length > 0);
         if (r.clear) output.replaceChildren();
         if (r.output) print(r.output);
-        for (const c of r.completed) print(`✓ Challenge completed: ${c.text}`, 'is-win');
+        for (const c of r.completed) print('✓ Challenge complete', 'is-win');
         if (r.chapterComplete) print(`★ Chapter complete: ${r.chapterComplete.title}. ${r.chapterComplete.outro}`, 'is-chapter-done');
         if (r.gameComplete) print('★ ★ ★  Every adventure is complete. Thanks for playing, agent.', 'is-chapter-done');
         // A finished chapter ends with the review; the next chapter's intro waits for it
@@ -590,7 +588,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const started = r.chapterStarted;
             setTimeout(() => startReview(r.chapterComplete.index, () => { if (started) chapterIntro(started); }), 1500);
         } else if (r.chapterStarted) chapterIntro(r.chapterStarted);
-        else if (r.completed.length && !r.gameComplete) print(`Next: ${game.currentChallenge().text}`, 'is-note');
         for (const effect of r.effects) if (effect.type === 'llm') runAgent(effect);
         bit.react(r, command);
         if (review) await checkReview();
@@ -739,14 +736,14 @@ document.addEventListener('DOMContentLoaded', () => {
         booting = true;
         if (!auto) output.replaceChildren();
         // One line for the whole start-up: it is replaced, not added to, when Linux is ready
-        const starting = real ? null : print('Starting a real Linux in this tab (about 11 MB the first time)…', 'is-note');
+        const starting = real ? null : print('Starting real Linux (about 11 MB the first time)…', 'is-note');
         try {
             if (!real) {
                 const backend = new RealTerminal.V86Backend();
                 const { seconds } = await backend.boot();
                 real = new RealChapters.Game(backend, CLIGame.CHAPTERS);
                 await real.start();
-                starting.textContent = `Real Linux is ready (${seconds.toFixed(1)} s). Your commands run in a real bash, in this tab.`;
+                starting.textContent = `Real Linux ready (${seconds.toFixed(1)} s).`;
             }
             // Account progress restored during start-up may already be past Chapter 1
             if (auto && !realByDefault()) {
@@ -827,13 +824,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (resumed) {
         const c = game.currentChallenge();
         output.replaceChildren(welcomeTemplate.cloneNode(true));
-        output.querySelector('.welcome p').textContent = 'Welcome back, agent. Your progress was saved in this browser.';
+        output.querySelector('.welcome p').textContent = 'Welcome back.';
         chapterIntro({ index: c.chapterIndex, title: c.chapter, intro: c.done ? 'Every adventure is complete. Replay any chapter from the sidebar.' : 'Picking up where you left off.' });
     }
     refresh();
     setBit(storage.get(BIT_KEY) !== 'off');
     const greeting = setTimeout(() => {
-        bit.say(resumed ? 'Welcome back! Click me any time for a hint.' : "Hi, I'm Bit! Click me any time you'd like a hint.", { mood: 'happy', hold: 6000 });
+        bit.say(resumed ? 'Welcome back! Click me for a hint.' : "Hi, I'm Bit. Click me for a hint.", { mood: 'happy', hold: 6000 });
     }, 900);
     form.addEventListener('submit', () => clearTimeout(greeting), { once: true });
     $('spriteButton').addEventListener('click', () => clearTimeout(greeting), { once: true });

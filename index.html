@@ -66,7 +66,7 @@
 ╚██████╗███████╗██║
  ╚═════╝╚══════╝╚═╝
 <span class="banner-word">adventures</span></pre>
-                        <p>Welcome, agent. Type a command at the prompt below and press Enter. The current challenge says what to try; <code>help</code> lists every command.</p>
+                        <p>Type a command and press Enter.</p>
                     </div>
                 </div>
                 <form class="input-line" id="commandForm" autocomplete="off">
@@ -118,8 +118,8 @@
             </div>
             <progress id="progressBar" max="10" value="0" aria-label="Challenges completed in this chapter">0 of 10</progress>
             <p class="chapter-label" id="chapterLabel">Chapter 1 · The Stolen Treasure</p>
-            <p class="challenge" id="currentChallenge">List the contents of your home directory</p>
-            <details class="hint" open>
+            <p class="challenge" id="currentChallenge" aria-live="polite">List the contents of your home directory</p>
+            <details class="hint">
                 <summary>Hint</summary>
                 <p id="challengeHint">Just type <code>ls</code> and press Enter</p>
             </details>
@@ -135,7 +135,7 @@
                 <summary>Challenges in this chapter</summary>
                 <ol class="lesson-list" id="lessonList"></ol>
             </details>
-            <details class="ref-group" open>
+            <details class="ref-group">
                 <summary>Commands</summary>
                 <p class="ref-note">Pick one to place it at the prompt.</p>
                 <div id="commandGroups"></div>

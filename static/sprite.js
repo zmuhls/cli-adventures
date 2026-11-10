@@ -240,6 +240,9 @@ const BitSprite = (() => {
             if (!result.error) return;
             streak.errors++;
             animate('is-shaking');
+            // The terminal already explains a first mistake, with a tip under it. Bit only
+            // looks worried then, and speaks up (and asks the model) from the second one on.
+            if (streak.errors === 1) { setMood('worried'); return; }
             const code = result.error.code;
             let fallback = ERROR_LINES[code] || "Not quite. Click me if you'd like a hint!";
             if (code === 'unknown_command' && result.events[0] && result.events[0].meta.suggestion) {
