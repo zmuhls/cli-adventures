@@ -4,7 +4,7 @@
 const BitSprite = (() => {
     'use strict';
 
-    const CHEERS = ['Nice one!', 'Yes! You got it.', 'Look at you go!', 'Smooth.', "That's the one!", 'Beep boop: correct!', 'Ooh, tidy work.', 'Nailed it!'];
+    const CHEERS = ['Nice one!', 'Yes! You got it.', 'Beep! That worked.', 'Smooth.', "That's the one!", 'Beep boop: correct!', 'Ooh, tidy work.', 'Done. On to the next one.'];
 
     const ERROR_LINES = {
         not_found: "Hmm, I can't find that name here. 'ls' shows the exact spellings.",
@@ -150,7 +150,7 @@ const BitSprite = (() => {
         function hint() {
             track();
             if (asleep) {
-                say("Zzz… I'm napping while you try these on your own. You've got this!", { mood: 'sleep', hold: 5000 });
+                say("Zzz… I'm napping while you try these on your own.", { mood: 'sleep', hold: 5000 });
                 return;
             }
             // While a hint is on its way, more clicks neither climb the ladder nor call the model again
@@ -218,7 +218,7 @@ const BitSprite = (() => {
             }
             if (result.gameComplete) {
                 animate('is-jumping');
-                say("You did it! You're a real command-line agent now.", { mood: 'happy', hold: 12000 });
+                say("You did it! Every chapter, from the command line.", { mood: 'happy', hold: 12000 });
                 confetti(true);
                 return;
             }

@@ -1590,7 +1590,7 @@ usage: agent COMMAND [options]
         const challenge = chapter.challenges[this.s.step];
         const base = { chapterIndex: this.s.chapter, chapter: chapter.title, chapters: CHAPTERS.length, total: chapter.challenges.length };
         if (!challenge) {
-            return { ...base, index: chapter.challenges.length, done: true, text: 'Every adventure is complete! Explore freely, or replay a chapter.', hint: "Try writing your own script with 'echo' and '>', then run it with 'sh'." };
+            return { ...base, index: chapter.challenges.length, done: true, text: 'Every chapter is complete. Keep using the terminal, or replay a chapter from the sidebar.', hint: "Try writing your own script with 'echo' and '>', then run it with 'sh'." };
         }
         return { ...base, index: this.s.step, id: challenge.id, text: challenge.text, hint: challenge.hint, done: false };
     };
@@ -1860,7 +1860,7 @@ usage: agent COMMAND [options]
             title: 'Ghost in the Downloads',
             blurb: 'Something is running that you did not start. Find it and remove it.',
             intro: 'Your laptop fan is roaring and everything is slow. Something is running that you did not start.',
-            outro: 'The machine is clean, the key is fresh, and you did it all from the command line.',
+            outro: 'The malware and its restart job are gone, and the old key no longer works.',
             setup(g) {
                 g.put(INVOICE, file(DROPPER, { mode: 0o755 }), true);
                 g.infect();
