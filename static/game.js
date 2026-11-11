@@ -23,6 +23,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const bitToggle = $('bitToggle');
     const realToggle = $('realToggle');
 
+    // On a phone the challenge is a menu under the terminal that can fold away;
+    // beside the terminal on a wide screen it is a fixed card that stays open.
+    const mission = $('mission');
+    const missionHead = mission.querySelector('summary');
+    const wideLayout = window.matchMedia('(min-width: 960px)');
+    const syncMission = () => {
+        if (wideLayout.matches) mission.open = true;
+        missionHead.tabIndex = wideLayout.matches ? -1 : 0;
+    };
+    missionHead.addEventListener('click', (event) => { if (wideLayout.matches) event.preventDefault(); });
+    mission.addEventListener('toggle', syncMission);
+    wideLayout.addEventListener('change', syncMission);
+    syncMission();
+
     const SAVE_KEY = 'cli-adventures-save-v2';
     const BIT_KEY = 'cli-adventures-bit';
     const MODE_KEY = 'cli-adventures-mode';
@@ -213,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const reply = await llm({ kind: 'agent', ...effect.payload });
             line.classList.remove('is-thinking');
             line.replaceChildren(label(), reply || effect.fallback);
-            line.append(element('span', 'ansi-dim line-source', reply ? '  (AI-worded: a language model wrote this reply)' : SCRIPTED_NOTE[llmReason] || SCRIPTED_NOTE.failed));
+            if (!reply) line.append(element('span', 'ansi-dim line-source', SCRIPTED_NOTE[llmReason] || SCRIPTED_NOTE.failed));
             if (effect.sources) {
                 const sources = element('div', 'line');
                 sources.append(renderAnsi(effect.sources));
@@ -550,7 +564,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         // The panel announces the next challenge, so the terminal only confirms this one
         for (const c of r.completed) print('✓ Challenge complete', 'is-win');
-        const chapterComplete = r.done && r.completed.length ? { title: real.currentChallenge().chapter, outro: 'You did it on a real Linux. Every command was the real thing.' } : null;
+        const chapterComplete = r.done && r.completed.length ? { title: real.currentChallenge().chapter, outro: 'Finished on a real Linux machine.' } : null;
         observe(before, command, r.code === 0, r.completed.length > 0);
         if (chapterComplete) {
             print(`★ Chapter complete: ${chapterComplete.title}`, 'is-chapter-done');
@@ -697,7 +711,7 @@ document.addEventListener('DOMContentLoaded', () => {
         chapterIntro(started);
         refresh();
         save();
-        bit.say(`Chapter ${index + 1}: ${started.title}. Let's go!`, { mood: 'happy', hold: 5000 });
+        bit.say(`Chapter ${index + 1}: ${started.title}.`, { mood: 'happy', hold: 5000 });
         input.focus();
     });
 
@@ -754,8 +768,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             realMode = true;
             // On a first visit the line above already says it; the longer note is for switching over mid-game
-            chapterIntro({ index: 0, title: real.currentChallenge().chapter, intro: auto ? '' : 'Same mission, real machine: the files, errors and output are all genuine.' });
-            if (!auto) bit.say("We're on a real Linux now! Same mission, real commands.", { mood: 'happy', hold: 6000 });
+            chapterIntro({ index: 0, title: real.currentChallenge().chapter, intro: auto ? '' : 'Same mission, now on a real Linux machine running in this tab.' });
+            if (!auto) bit.say('The same commands work here. Click me if you get stuck.', { mood: 'happy', hold: 6000 });
         } catch (err) {
             realToggle.setAttribute('aria-pressed', 'false');
             print(`\u001b[31mThe real Linux could not start (${err.message}), so you're in the simulator.\u001b[0m`, 'is-error');

@@ -4,7 +4,7 @@
 const BitSprite = (() => {
     'use strict';
 
-    const CHEERS = ['Nice one!', 'Yes! You got it.', 'Look at you go!', 'Smooth.', "That's the one!", 'Beep boop: correct!', 'Ooh, tidy work.', 'Nailed it!'];
+    const CHEERS = ['Nice one!', 'Yes! You got it.', 'Beep! That worked.', 'Smooth.', "That's the one!", 'Beep boop: correct!', 'Ooh, tidy work.', 'Done. On to the next one.'];
 
     const ERROR_LINES = {
         not_found: "Hmm, I can't find that name here. 'ls' shows the exact spellings.",
@@ -93,10 +93,9 @@ const BitSprite = (() => {
             });
         }
 
-        // A line worded by the language model is marked, so it is never mistaken for the game's own
+        // Records where a line came from (model or script) without showing it
         function setSource(model) {
             bubble.dataset.source = model ? 'model' : 'script';
-            if (name) name.textContent = model ? 'Bit · AI-worded' : 'Bit';
         }
 
         function say(message, { mood = 'idle', hold = 9000, model = false } = {}) {
@@ -107,7 +106,7 @@ const BitSprite = (() => {
             bubble.classList.remove('is-thinking');
             setSource(model);
             render(message);
-            live.textContent = `Bit says${model ? ' (worded by a language model)' : ''}: ${message.replace(QUOTED, '$1')}`;
+            live.textContent = `Bit says: ${message.replace(QUOTED, '$1')}`;
             bubble.hidden = false;
             layout();
             setMood(mood, Math.min(hold, 4000));
@@ -150,7 +149,7 @@ const BitSprite = (() => {
         function hint() {
             track();
             if (asleep) {
-                say("Zzz… I'm napping while you try these on your own. You've got this!", { mood: 'sleep', hold: 5000 });
+                say("Zzz… I'm napping while you try these on your own.", { mood: 'sleep', hold: 5000 });
                 return;
             }
             // While a hint is on its way, more clicks neither climb the ladder nor call the model again
@@ -218,7 +217,7 @@ const BitSprite = (() => {
             }
             if (result.gameComplete) {
                 animate('is-jumping');
-                say("You did it! You're a real command-line agent now.", { mood: 'happy', hold: 12000 });
+                say("You did it! Every chapter, from the command line.", { mood: 'happy', hold: 12000 });
                 confetti(true);
                 return;
             }

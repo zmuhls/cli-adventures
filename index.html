@@ -111,19 +111,18 @@
             </div>
         </section>
 
-        <section class="mission panel" aria-labelledby="missionHeading">
-            <div class="mission-head">
-                <h2 id="missionHeading">Current challenge</h2>
-                <span class="step-count" id="stepCount">1 of 10</span>
+        <details class="mission panel" id="mission" open>
+            <summary class="mission-head"><h2 id="missionHeading">Current challenge</h2><span class="step-count" id="stepCount">1 of 10</span></summary>
+            <div class="mission-body">
+                <progress id="progressBar" max="10" value="0" aria-label="Challenges completed in this chapter">0 of 10</progress>
+                <p class="chapter-label" id="chapterLabel">Chapter 1 · The Stolen Treasure</p>
+                <p class="challenge" id="currentChallenge" aria-live="polite">List the contents of your home directory</p>
+                <details class="hint">
+                    <summary>Hint</summary>
+                    <p id="challengeHint">Just type <code>ls</code> and press Enter</p>
+                </details>
             </div>
-            <progress id="progressBar" max="10" value="0" aria-label="Challenges completed in this chapter">0 of 10</progress>
-            <p class="chapter-label" id="chapterLabel">Chapter 1 · The Stolen Treasure</p>
-            <p class="challenge" id="currentChallenge" aria-live="polite">List the contents of your home directory</p>
-            <details class="hint">
-                <summary>Hint</summary>
-                <p id="challengeHint">Just type <code>ls</code> and press Enter</p>
-            </details>
-        </section>
+        </details>
 
         <aside class="reference panel" aria-labelledby="referenceHeading">
             <h2 class="visually-hidden" id="referenceHeading">Reference</h2>
@@ -150,7 +149,7 @@
                 <summary>Tips</summary>
                 <ul class="tips-list">
                     <li>Click Bit, the little sprite by the prompt, for a hint. Each click gives a little more, up to the exact command when you have been stuck a while.</li>
-                    <li>A language model words some of Bit’s lines and the agent’s cloud answers; those are marked <strong>AI-worded</strong>. The game’s rules, not the model, decide what a hint may reveal and when a challenge is done.</li>
+                    <li>A language model words some of Bit’s lines and the agent’s cloud answers. The game’s rules, not the model, decide what a hint may reveal and when a challenge is done.</li>
                     <li>Press <kbd>↑</kbd> and <kbd>↓</kbd> to bring back earlier commands. <kbd>Tab</kbd> finishes names; on an empty prompt it moves focus on.</li>
                     <li>Names ending in <code>/</code> are directories. Names that start with a dot are hidden; <code>ls -a</code> shows them.</li>
                     <li><code>~</code> is short for your home directory, <code>/home/fsociety</code>.</li>
