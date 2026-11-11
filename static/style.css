@@ -136,11 +136,11 @@ a:hover { text-decoration-thickness: 2px; }
 }
 .tagline { color: var(--muted); font-size: var(--fs-body); }
 
-/* Page grid: terminal window, then the challenge and reference menu */
+/* Page grid: on narrow screens the terminal, then the challenge, then reference */
 .layout {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "window" "reference";
+    grid-template-areas: "window" "mission" "reference";
     gap: 14px;
     width: 100%;
     max-width: calc(1540px + 2 * var(--gutter));
@@ -566,9 +566,15 @@ a.tab:focus-visible { outline-offset: -2px; }
 .has-expanded-window { overflow: hidden; }
 
 /* ---------- Challenge panel ---------- */
-/* The challenge is the first menu in the reference column, open by default */
-.mission > summary h2 { font: inherit; }
-.mission .step-count { margin-left: auto; color: var(--muted); font: 500 var(--fs-small)/1.4 var(--font-ui); }
+/* Narrow screens: the challenge is a menu under the terminal, open by default */
+.mission { grid-area: mission; }
+.mission-head {
+    min-height: 46px;
+    padding: 0 18px;
+    font-size: var(--fs-lead);
+}
+.mission-head h2 { font: inherit; }
+.step-count { margin-left: auto; color: var(--muted); font: 500 var(--fs-small)/1.4 var(--font-ui); }
 .mission-body {
     display: flex;
     flex-direction: column;
@@ -801,12 +807,27 @@ summary:hover { color: var(--green); }
 @media (min-width: 960px) {
     .layout {
         grid-template-columns: minmax(0, 1fr) clamp(300px, 26vw, 360px);
-        grid-template-rows: minmax(0, 1fr);
-        grid-template-areas: "window reference";
+        grid-template-rows: auto minmax(0, 1fr);
+        grid-template-areas: "window mission" "window reference";
         column-gap: 20px;
         row-gap: 14px;
     }
     .window { grid-row: 1 / -1; }
+    /* Wide screens keep the challenge as a fixed card; game.js keeps it open */
+    .mission-head {
+        align-items: baseline;
+        min-height: 0;
+        padding: 16px 18px 10px;
+        cursor: default;
+    }
+    .mission-head::before { display: none; }
+    .mission-head:hover { color: var(--text); }
+    .mission-head h2 {
+        color: var(--muted);
+        font: 500 var(--fs-label)/1.4 var(--font-ui);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
 }
 
 /* Tall enough to fit everything: the page becomes a fixed app frame */
@@ -832,10 +853,10 @@ summary:hover { color: var(--green); }
     .page-header h1 { min-height: 44px; font-size: 1.125rem; white-space: nowrap; }
     .page-header .badge { display: none; }
     /* On a phone the terminal comes first: the tagline goes, and the challenge
-       menu below it stays compact. */
+       menu under it stays compact. */
     .tagline { display: none; }
     .layout { gap: 8px; padding-top: 8px; }
-    .ref-group > summary { padding: 0 12px; }
+    .mission-head { padding: 0 12px; }
     .mission-body { gap: 6px; padding: 0 12px 12px; }
     .mission .challenge { font-size: var(--fs-body); }
     /* Smaller type in the output fits a command's result on fewer lines; the prompt
