@@ -227,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const reply = await llm({ kind: 'agent', ...effect.payload });
             line.classList.remove('is-thinking');
             line.replaceChildren(label(), reply || effect.fallback);
-            line.append(element('span', 'ansi-dim line-source', reply ? '  (AI-worded: a language model wrote this reply)' : SCRIPTED_NOTE[llmReason] || SCRIPTED_NOTE.failed));
+            if (!reply) line.append(element('span', 'ansi-dim line-source', SCRIPTED_NOTE[llmReason] || SCRIPTED_NOTE.failed));
             if (effect.sources) {
                 const sources = element('div', 'line');
                 sources.append(renderAnsi(effect.sources));

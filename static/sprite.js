@@ -93,10 +93,9 @@ const BitSprite = (() => {
             });
         }
 
-        // A line worded by the language model is marked, so it is never mistaken for the game's own
+        // Records where a line came from (model or script) without showing it
         function setSource(model) {
             bubble.dataset.source = model ? 'model' : 'script';
-            if (name) name.textContent = model ? 'Bit · AI-worded' : 'Bit';
         }
 
         function say(message, { mood = 'idle', hold = 9000, model = false } = {}) {
@@ -107,7 +106,7 @@ const BitSprite = (() => {
             bubble.classList.remove('is-thinking');
             setSource(model);
             render(message);
-            live.textContent = `Bit says${model ? ' (worded by a language model)' : ''}: ${message.replace(QUOTED, '$1')}`;
+            live.textContent = `Bit says: ${message.replace(QUOTED, '$1')}`;
             bubble.hidden = false;
             layout();
             setMood(mood, Math.min(hold, 4000));
