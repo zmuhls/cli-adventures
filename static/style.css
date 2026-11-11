@@ -136,11 +136,11 @@ a:hover { text-decoration-thickness: 2px; }
 }
 .tagline { color: var(--muted); font-size: var(--fs-body); }
 
-/* Page grid: challenge, terminal window and reference */
+/* Page grid: terminal window, then the challenge and reference menu */
 .layout {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "mission" "window" "reference";
+    grid-template-areas: "window" "reference";
     gap: 14px;
     width: 100%;
     max-width: calc(1540px + 2 * var(--gutter));
@@ -566,26 +566,15 @@ a.tab:focus-visible { outline-offset: -2px; }
 .has-expanded-window { overflow: hidden; }
 
 /* ---------- Challenge panel ---------- */
-.mission {
-    grid-area: mission;
+/* The challenge is the first menu in the reference column, open by default */
+.mission > summary h2 { font: inherit; }
+.mission .step-count { margin-left: auto; color: var(--muted); font: 500 var(--fs-small)/1.4 var(--font-ui); }
+.mission-body {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    padding: 16px 18px;
+    padding: 0 18px 16px;
 }
-.mission-head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 12px;
-}
-.mission h2 {
-    color: var(--muted);
-    font: 500 var(--fs-label)/1.4 var(--font-ui);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-.step-count { color: var(--muted); font: 500 var(--fs-small)/1.4 var(--font-ui); }
 
 progress {
     width: 100%;
@@ -812,8 +801,8 @@ summary:hover { color: var(--green); }
 @media (min-width: 960px) {
     .layout {
         grid-template-columns: minmax(0, 1fr) clamp(300px, 26vw, 360px);
-        grid-template-rows: auto minmax(0, 1fr);
-        grid-template-areas: "window mission" "window reference";
+        grid-template-rows: minmax(0, 1fr);
+        grid-template-areas: "window reference";
         column-gap: 20px;
         row-gap: 14px;
     }
@@ -833,12 +822,6 @@ summary:hover { color: var(--green); }
     }
 }
 
-/* Narrow screens: the challenge card sits above the terminal, so the status bar
-   only needs the directory */
-@media (max-width: 959px) {
-    .status-challenge { display: none; }
-    .window.is-expanded .status-challenge { display: block; }
-}
 
 @media (max-width: 600px) {
     /* The title shares the top row with Games and CUNY Login instead of sitting under them */
@@ -849,17 +832,12 @@ summary:hover { color: var(--green); }
     .page-header h1 { min-height: 44px; font-size: 1.125rem; white-space: nowrap; }
     .page-header .badge { display: none; }
     /* On a phone the terminal comes first: the tagline goes, and the challenge
-       panel is three tight rows, so the prompt is on screen without scrolling. */
+       menu below it stays compact. */
     .tagline { display: none; }
     .layout { gap: 8px; padding-top: 8px; }
-    .mission { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; padding: 10px 12px; }
-    .mission-head { display: contents; }
-    .mission-head h2 { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-    .mission .chapter-label { grid-column: 1; grid-row: 1; }
-    .mission .step-count { grid-column: 2; grid-row: 1; }
-    .mission progress, .mission .challenge, .mission .hint { grid-column: 1 / -1; }
-    .mission .challenge { margin: 2px 0 0; font-size: var(--fs-body); }
-    .mission .hint { margin-top: 2px; }
+    .ref-group > summary { padding: 0 12px; }
+    .mission-body { gap: 6px; padding: 0 12px 12px; }
+    .mission .challenge { font-size: var(--fs-body); }
     /* Smaller type in the output fits a command's result on fewer lines; the prompt
        itself stays at 16px so iOS does not zoom into it. */
     .terminal { padding: 0 12px; font-size: var(--fs-small); line-height: 1.5; }
